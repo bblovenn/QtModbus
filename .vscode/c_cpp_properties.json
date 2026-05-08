@@ -1,0 +1,32 @@
+{
+    "configurations": [
+        {
+            "name": "Qt 5.14.2 MinGW 64-bit",
+            "compilerPath": "D:/Qt/Qt5.14.2/Tools/mingw730_64/bin/g++.exe",
+            "includePath": [
+                "${workspaceFolder}",
+                "${workspaceFolder}/**",
+                "D:/Qt/Qt5.14.2/5.14.2/mingw73_64/include",
+                "D:/Qt/Qt5.14.2/5.14.2/mingw73_64/include/QtCore",
+                "D:/Qt/Qt5.14.2/5.14.2/mingw73_64/include/QtWidgets",
+                "D:/Qt/Qt5.14.2/5.14.2/mingw73_64/include/QtGui",
+                "D:/Qt/Qt5.14.2/5.14.2/mingw73_64/include/QtSql",
+                "D:/Qt/Qt5.14.2/5.14.2/mingw73_64/include/QtSerialBus",
+                "D:/Qt/Qt5.14.2/5.14.2/mingw73_64/include/QtSerialPort",
+                "D:/Qt/Qt5.14.2/5.14.2/mingw73_64/mkspecs/win32-g++"
+            ],
+            "defines": [
+                "QT_CORE_LIB",
+                "QT_WIDGETS_LIB",
+                "QT_GUI_LIB",
+                "QT_SQL_LIB",
+                "QT_SERIALBUS_LIB",
+                "QT_SERIALPORT_LIB"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}

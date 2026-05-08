@@ -7,6 +7,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -24,7 +25,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #    endif()
 #endif()
 
-find_package(Qt5 REQUIRED COMPONENTS Widgets SerialBus SerialPort)
+find_package(Qt5 REQUIRED COMPONENTS Widgets SerialBus SerialPort Sql)
 
 if(ANDROID)
   add_library(Modbus SHARED
@@ -47,11 +48,19 @@ if(ANDROID)
     ui/PacketMonitorPanel.cpp
     ui/MonitorPanel.h
     ui/MonitorPanel.cpp
+    ui/AlarmPanel.h
+    ui/AlarmPanel.cpp
+    ui/HistoryPanel.h
+    ui/HistoryPanel.cpp
     communication/IModbusClient.h
     communication/QtModbusClient.h
     communication/QtModbusClient.cpp
     polling/PollingWorker.h
     polling/PollingWorker.cpp
+    alarm/AlarmManager.h
+    alarm/AlarmManager.cpp
+    database/DatabaseManager.h
+    database/DatabaseManager.cpp
   )
 else()
   add_executable(Modbus
@@ -74,11 +83,19 @@ else()
     ui/PacketMonitorPanel.cpp
     ui/MonitorPanel.h
     ui/MonitorPanel.cpp
+    ui/AlarmPanel.h
+    ui/AlarmPanel.cpp
+    ui/HistoryPanel.h
+    ui/HistoryPanel.cpp
     communication/IModbusClient.h
     communication/QtModbusClient.h
     communication/QtModbusClient.cpp
     polling/PollingWorker.h
     polling/PollingWorker.cpp
+    alarm/AlarmManager.h
+    alarm/AlarmManager.cpp
+    database/DatabaseManager.h
+    database/DatabaseManager.cpp
   )
 endif()
 
@@ -86,4 +103,5 @@ target_link_libraries(Modbus PRIVATE
     Qt5::Widgets 
     Qt5::SerialBus 
     Qt5::SerialPort
+    Qt5::Sql
 )

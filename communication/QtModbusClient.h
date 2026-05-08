@@ -16,15 +16,20 @@ public:
 public slots:
     void connectDevice(const DeviceConfig &config) override;
     void disconnectDevice() override;
-    void readHoldingRegisters(int startAddress, int count) override; //	读取保持寄存器
-    void writeSingleHoldingRegister(int address, quint16 value) override; 	//写单个保持寄存器
+    void readHoldingRegisters(int startAddress, int count) override;
+    void writeSingleHoldingRegister(int address, quint16 value) override;
+
+signals:
+    void unexpectedDisconnected(const QString &deviceId);
 
 private:
-    void createClient(const DeviceConfig &config); //根据 config.mode 选择创建 RTU 或 TCP 客户端
+    void createClient(const DeviceConfig &config);
 
 private:
-    DeviceConfig config_;//保存当前连接配置（用于重连等）
-    QModbusClient *client_ = nullptr;//指向 Qt Modbus 客户端实例（RAII 风格初始化为 nullptr）
+    DeviceConfig config_;
+    QModbusClient *client_ = nullptr;
+    bool manualDisconnect_ = false;
+    bool wasConnected_ = false;
 };
 
 #endif // QTMODBUSCLIENT_H

@@ -47,9 +47,16 @@ void QtModbusClient::createClient(const DeviceConfig &config)
 
     connect(client_, &QModbusClient::stateChanged, this, [this](int state) {
         if (state == QModbusDevice::ConnectedState) {
+            wasConnected_ = true;
+            manualDisconnect_ = false;
             emit connected();
         } else if (state == QModbusDevice::UnconnectedState) {
+            const bool unexpected = wasConnected_ && !manualDisconnect_;
+            wasConnected_ = false;
             emit disconnected();
+            if (unexpected) {
+                emit unexpectedDisconnected(config_.deviceId);
+            }
         }
     });
 
@@ -63,6 +70,8 @@ void QtModbusClient::createClient(const DeviceConfig &config)
 void QtModbusClient::connectDevice(const DeviceConfig &config)
 {
     config_ = config;
+    manualDisconnect_ = false;
+    wasConnected_ = false;
     createClient(config_);
 
     if (!client_->connectDevice()) {
@@ -76,6 +85,7 @@ void QtModbusClient::disconnectDevice()
         return;
     }
 
+    manualDisconnect_ = true;
     client_->disconnectDevice();
 }
 
