@@ -22,6 +22,7 @@ public:
 
 private slots:
     void queryHistory();
+    void exportCsv();
 
 private:
     void setupUi();
@@ -38,6 +39,8 @@ private:
     QComboBox *confirmedCombo = nullptr;
     QPushButton *queryButton = nullptr;
     QTableWidget *table = nullptr;
+    QPushButton *exportButton = nullptr;
+    QList<AlarmRecord> currentRecords;
 };
 
 #endif // ALARMHISTORYPANEL_H

@@ -53,6 +53,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupMainTabs()
 {
+
+    
+
     // 主标签页负责承载各个功能面板，所有面板统一挂到 tabs 下管理生命周期。
     tabs = new QTabWidget(this);
 
@@ -70,6 +73,32 @@ void MainWindow::setupMainTabs()
 
     HistoryPanel *historyPanel = new HistoryPanel(databaseManager, tabs);
     AlarmHistoryPanel *alarmHistoryPanel = new AlarmHistoryPanel(databaseManager, tabs);
+
+    //设计模式：这是一个观察者/发布-订阅模式的变体
+    //lambda 表达式（匿名函数），用于持久化记录通信报文日志
+    auto appendPersistentLog =
+    //捕获列表：捕获外部的两个变量，供 lambda 内部使用
+    [packetPanel, databaseManager](
+        const QString &category,
+        const QString &direction,
+        const QString &content
+    ) {
+        const QDateTime now = QDateTime::currentDateTime();
+
+        packetPanel->appendText(
+            QString("[%1] %2: %3")
+                .arg(now.toString("yyyy-MM-dd HH:mm:ss.zzz"))
+                .arg(direction)
+                .arg(content)
+        );
+
+        databaseManager->savePacketLog(
+            now,
+            category,
+            direction,
+            content
+        );
+    };
 
     QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
 
@@ -120,11 +149,6 @@ void MainWindow::setupMainTabs()
             databaseManager, &DatabaseManager::confirmAlarm
         );
     }
-
-    connect(databaseManager, &DatabaseManager::errorOccurred,
-        this, [this](const QString &message) {
-            statusBar()->showMessage("数据库错误：" + message);
-    });
 
     connect(databaseManager, &DatabaseManager::errorOccurred,
         packetPanel, [packetPanel](const QString &message) {
@@ -237,74 +261,81 @@ void MainWindow::setupMainTabs()
 
     // 报文日志用于观察用户操作、通信结果、报警和数据库错误。
     connect(connectionPanel, &ConnectionPanel::connectRequested,
-        packetPanel, [packetPanel](const DeviceConfig &config) {
-            packetPanel->appendText(
-                QString("[%1] TX: Connect request %2:%3 slave=%4")
-                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss.zzz"))
-                    .arg(config.tcp.host)
-                    .arg(config.tcp.port)
-                    .arg(config.slaveId)
-            );
+    packetPanel, [appendPersistentLog](const DeviceConfig &config) {
+        appendPersistentLog(
+            "Connection",
+            "TX",
+            QString("Connect request %1:%2 slave=%3")
+                .arg(config.tcp.host)
+                .arg(config.tcp.port)
+                .arg(config.slaveId)
+        );
     });
 
     connect(connectionPanel, &ConnectionPanel::disconnectRequested,
-        packetPanel, [packetPanel]() {
-            packetPanel->appendText(
-                QString("[%1] TX: Disconnect request")
-                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss.zzz"))
-            );
+    packetPanel, [appendPersistentLog]() {
+        appendPersistentLog(
+            "Connection",
+            "TX",
+            "Disconnect request"
+        );
     });
 
     connect(registerPanel, &RegisterPanel::readHoldingRegistersRequested,
-        packetPanel, [packetPanel](int startAddress, int count) {
-            packetPanel->appendText(
-                QString("[%1] TX: Read holding registers start=%2 count=%3")
-                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss.zzz"))
-                    .arg(startAddress)
-                    .arg(count)
-            );
+        packetPanel, [appendPersistentLog](int startAddress, int count) {
+        appendPersistentLog(
+            "Modbus",
+            "TX",
+            QString("Read holding registers start=%1 count=%2")
+                .arg(startAddress)
+                .arg(count)
+        );
     });
 
+
     connect(registerPanel, &RegisterPanel::writeSingleHoldingRegisterRequested,
-        packetPanel, [packetPanel](int address, quint16 value) {
-            packetPanel->appendText(
-                QString("[%1] TX: Write single holding register address=%2 value=%3")
-                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss.zzz"))
+        packetPanel, [appendPersistentLog](int address, quint16 value) {
+            appendPersistentLog(
+                "Modbus",
+                "TX",
+                QString("Write single holding register address=%1 value=%2")
                     .arg(address)
                     .arg(value)
             );
     });
 
+    connect(modbusClient, &QtModbusClient::errorOccurred,
+        packetPanel, [appendPersistentLog](const QString &message) {
+            appendPersistentLog(
+                "Communication",
+                "RX",
+                "Error " + message
+            );
+    });
+
     connect(modbusClient, &QtModbusClient::holdingRegistersRead,
-        packetPanel, [packetPanel](const RegisterReadResult &result) {
-            packetPanel->appendText(
-                QString("[%1] RX: Holding registers read ok start=%2 count=%3")
-                    .arg(result.timestamp.toString("yyyy-MM-dd HH:mm:ss.zzz"))
+        packetPanel, [appendPersistentLog](const RegisterReadResult &result) {
+            appendPersistentLog(
+                "Modbus",
+                "RX",
+                QString("Holding registers read ok start=%1 count=%2")
                     .arg(result.startAddress)
                     .arg(result.values.size())
             );
     });
 
-    connect(modbusClient, &QtModbusClient::errorOccurred,
-        packetPanel, [packetPanel](const QString &message) {
-            packetPanel->appendText(
-                QString("[%1] RX: Error %2")
-                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss.zzz"))
-                    .arg(message)
+    connect(alarmManager, &AlarmManager::alarmRaised,
+        packetPanel, [appendPersistentLog](const AlarmRecord &alarm) {
+            appendPersistentLog(
+                "Alarm",
+                "ALARM",
+                alarm.message
             );
     });
 
-    connect(alarmManager, &AlarmManager::alarmRaised,
-        packetPanel, [packetPanel](const AlarmRecord &alarm) {
-            packetPanel->appendText(
-                QString("[%1] ALARM: %2")
-                    .arg(alarm.alarmTime.toString("yyyy-MM-dd HH:mm:ss.zzz"))
-                    .arg(alarm.message)
-            );
-    });
 
     connect(alarmConfigPanel, &AlarmConfigPanel::alarmLimitsChanged,
-    alarmManager, &AlarmManager::setAlarmLimits
+        alarmManager, &AlarmManager::setAlarmLimits
     );
 
     connect(alarmConfigPanel, &AlarmConfigPanel::alarmLimitsChanged,

@@ -4,6 +4,7 @@
 #include "../core/EngineeringValue.h"
 
 #include <QWidget>
+#include <QList>
 
 class DatabaseManager;
 class QDateTimeEdit;
@@ -20,6 +21,7 @@ public:
 
 private slots:
     void queryHistory();
+    void exportCsv();
 
 private:
     void setupUi();
@@ -33,6 +35,8 @@ private:
     QDateTimeEdit *endTimeEdit = nullptr;
     QPushButton *queryButton = nullptr;
     QTableWidget *table = nullptr;
+    QPushButton *exportButton = nullptr;
+    QList<EngineeringValue> currentValues; // 当前查询结果，用于导出
 };
 
 #endif // HISTORYPANEL_H

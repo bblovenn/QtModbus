@@ -5,13 +5,33 @@
 #include <QComboBox>
 #include <QDateTime>
 #include <QDateTimeEdit>
-#include <QHBoxLayout>
+#include <QFile>
+#include <QFileDialog>
 #include <QHeaderView>
+#include <QHBoxLayout>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QTableWidget>
 #include <QTableWidgetItem>
+#include <QTextStream>
 #include <QVBoxLayout>
+
+namespace {
+
+QString text(const char *value)
+{
+    return QString::fromUtf8(value);
+}
+
+QString csvEscape(const QString &value)
+{
+    QString escaped = value;
+    escaped.replace("\"", "\"\"");
+    return "\"" + escaped + "\"";
+}
+
+} // namespace
 
 AlarmHistoryPanel::AlarmHistoryPanel(DatabaseManager *databaseManagerValue, QWidget *parent)
     : QWidget(parent)
@@ -24,7 +44,6 @@ void AlarmHistoryPanel::setupUi()
 {
     deviceIdEdit = new QLineEdit("device-001", this);
 
-    // 开始时间：当前时间往前1小时，支持日历选择
     beginTimeEdit = new QDateTimeEdit(QDateTime::currentDateTime().addSecs(-3600), this);
     beginTimeEdit->setDisplayFormat("yyyy-MM-dd HH:mm:ss");
     beginTimeEdit->setCalendarPopup(true);
@@ -33,13 +52,13 @@ void AlarmHistoryPanel::setupUi()
     endTimeEdit->setDisplayFormat("yyyy-MM-dd HH:mm:ss");
     endTimeEdit->setCalendarPopup(true);
 
-    // 确认状态下拉框：显示文本 + 实际值（UserRole）
     confirmedCombo = new QComboBox(this);
-    confirmedCombo->addItem("All", -1);
-    confirmedCombo->addItem("Unconfirmed", 0);
-    confirmedCombo->addItem("Confirmed", 1);
+    confirmedCombo->addItem(text(u8"全部"), -1);
+    confirmedCombo->addItem(text(u8"未确认"), 0);
+    confirmedCombo->addItem(text(u8"已确认"), 1);
 
-    queryButton = new QPushButton("查询", this);
+    queryButton = new QPushButton(text(u8"查询"), this);
+    exportButton = new QPushButton(text(u8"导出 CSV"), this);
 
     auto *filterLayout = new QHBoxLayout;
     filterLayout->addWidget(deviceIdEdit);
@@ -47,12 +66,21 @@ void AlarmHistoryPanel::setupUi()
     filterLayout->addWidget(endTimeEdit);
     filterLayout->addWidget(confirmedCombo);
     filterLayout->addWidget(queryButton);
+    filterLayout->addWidget(exportButton);
 
     table = new QTableWidget(this);
     table->setColumnCount(10);
     table->setHorizontalHeaderLabels({
-        "Time", "Device", "Type", "Level", "Current",
-        "Threshold", "Message", "Confirmed", "Confirmed Time", "Alarm ID"
+        text(u8"报警时间"),
+        text(u8"设备 ID"),
+        text(u8"报警类型"),
+        text(u8"报警等级"),
+        text(u8"当前值"),
+        text(u8"阈值"),
+        text(u8"消息"),
+        text(u8"确认状态"),
+        text(u8"确认时间"),
+        text(u8"报警 ID")
     });
     table->horizontalHeader()->setStretchLastSection(true);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -64,6 +92,9 @@ void AlarmHistoryPanel::setupUi()
 
     connect(queryButton, &QPushButton::clicked,
             this, &AlarmHistoryPanel::queryHistory);
+
+    connect(exportButton, &QPushButton::clicked,
+            this, &AlarmHistoryPanel::exportCsv);
 }
 
 void AlarmHistoryPanel::queryHistory()
@@ -72,18 +103,18 @@ void AlarmHistoryPanel::queryHistory()
         return;
     }
 
-    // 获取当前选择的确认状态过滤值（-1/0/1）
+    endTimeEdit->setDateTime(QDateTime::currentDateTime());
+
     const int confirmedFilter = confirmedCombo->currentData().toInt();
 
-    const QList<AlarmRecord> records =
-        databaseManager->queryAlarmRecords(
-            deviceIdEdit->text().trimmed(),
-            beginTimeEdit->dateTime(),
-            endTimeEdit->dateTime(),
-            confirmedFilter
-        );
+    currentRecords = databaseManager->queryAlarmRecords(
+        deviceIdEdit->text().trimmed(),
+        beginTimeEdit->dateTime(),
+        endTimeEdit->dateTime(),
+        confirmedFilter
+    );
 
-    displayRecords(records);
+    displayRecords(currentRecords);
 }
 
 void AlarmHistoryPanel::displayRecords(const QList<AlarmRecord> &records)
@@ -101,7 +132,7 @@ void AlarmHistoryPanel::displayRecords(const QList<AlarmRecord> &records)
         table->setItem(row, 4, new QTableWidgetItem(QString::number(record.currentValue, 'f', 2)));
         table->setItem(row, 5, new QTableWidgetItem(QString::number(record.thresholdValue, 'f', 2)));
         table->setItem(row, 6, new QTableWidgetItem(record.message));
-        table->setItem(row, 7, new QTableWidgetItem(record.confirmed ? "Yes" : "No"));
+        table->setItem(row, 7, new QTableWidgetItem(record.confirmed ? text(u8"已确认") : text(u8"未确认")));
         table->setItem(row, 8, new QTableWidgetItem(
             record.confirmedTime.isValid()
                 ? record.confirmedTime.toString("yyyy-MM-dd HH:mm:ss")
@@ -111,36 +142,94 @@ void AlarmHistoryPanel::displayRecords(const QList<AlarmRecord> &records)
     }
 }
 
-// 报警类型枚举转中文字符串
 QString AlarmHistoryPanel::alarmTypeText(AlarmType type) const
 {
     switch (type) {
     case AlarmType::TemperatureHigh:
-        return "温度过高";
+        return text(u8"温度过高");
     case AlarmType::VoltageLow:
-        return "电压过低";
+        return text(u8"电压过低");
     case AlarmType::CommunicationTimeout:
-        return "通信超时";
+        return text(u8"通信超时");
     case AlarmType::DeviceOffline:
-        return "设备离线";
+        return text(u8"设备离线");
     case AlarmType::ModbusException:
-        return "Modbus异常";
+        return text(u8"Modbus 异常");
     }
 
-    return "未知";
+    return text(u8"未知");
 }
 
-// 报警等级枚举转中文字符串
 QString AlarmHistoryPanel::alarmLevelText(AlarmLevel level) const
 {
     switch (level) {
     case AlarmLevel::Info:
-        return "提示";
+        return text(u8"提示");
     case AlarmLevel::Warning:
-        return "警告";
+        return text(u8"警告");
     case AlarmLevel::Critical:
-        return "严重";
+        return text(u8"严重");
     }
 
-    return "未知";
+    return text(u8"未知");
+}
+
+void AlarmHistoryPanel::exportCsv()
+{
+    if (currentRecords.isEmpty()) {
+        QMessageBox::information(this, text(u8"导出 CSV"), text(u8"没有报警记录可以导出。"));
+        return;
+    }
+
+    const QString fileName = QFileDialog::getSaveFileName(
+        this,
+        text(u8"导出报警数据"),
+        "alarm_log.csv",
+        text(u8"CSV 文件 (*.csv)")
+    );
+
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, text(u8"导出 CSV"), text(u8"无法打开文件。"));
+        return;
+    }
+
+    QTextStream out(&file);
+    out.setCodec("UTF-8");
+    out.setGenerateByteOrderMark(true);
+
+    out << csvEscape(text(u8"报警 ID")) << ","
+        << csvEscape(text(u8"报警时间")) << ","
+        << csvEscape(text(u8"设备 ID")) << ","
+        << csvEscape(text(u8"报警类型")) << ","
+        << csvEscape(text(u8"报警等级")) << ","
+        << csvEscape(text(u8"当前值")) << ","
+        << csvEscape(text(u8"阈值")) << ","
+        << csvEscape(text(u8"消息")) << ","
+        << csvEscape(text(u8"确认状态")) << ","
+        << csvEscape(text(u8"确认时间")) << "\n";
+
+    for (const AlarmRecord &record : currentRecords) {
+        out << csvEscape(record.id) << ","
+            << csvEscape(record.alarmTime.toString("yyyy-MM-dd HH:mm:ss")) << ","
+            << csvEscape(record.deviceId) << ","
+            << csvEscape(alarmTypeText(record.type)) << ","
+            << csvEscape(alarmLevelText(record.level)) << ","
+            << csvEscape(QString::number(record.currentValue, 'f', 2)) << ","
+            << csvEscape(QString::number(record.thresholdValue, 'f', 2)) << ","
+            << csvEscape(record.message) << ","
+            << csvEscape(record.confirmed ? text(u8"已确认") : text(u8"未确认")) << ","
+            << csvEscape(record.confirmedTime.isValid()
+                    ? record.confirmedTime.toString("yyyy-MM-dd HH:mm:ss")
+                    : "")
+            << "\n";
+    }
+
+    file.close();
+
+    QMessageBox::information(this, text(u8"导出 CSV"), text(u8"导出完成。"));
 }

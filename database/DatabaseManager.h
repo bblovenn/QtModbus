@@ -8,6 +8,7 @@
 #include <QSqlDatabase>
 #include <QList>
 #include <QDateTime>
+#include <QStringList>
 
 class DatabaseManager : public QObject
 {
@@ -33,10 +34,22 @@ public:
     int confirmedFilter
     );
 
+    QList<QStringList> queryPacketLogs(
+    const QDateTime &beginTime,
+    const QDateTime &endTime,
+    const QString &category
+    );
+
 public slots:
     void saveEngineeringValue(const EngineeringValue &value);
     void saveAlarmRecord(const AlarmRecord &alarm);
     void confirmAlarm(const QString &alarmId, const QDateTime &confirmedTime);
+    void savePacketLog(
+    const QDateTime &time,
+    const QString &category,
+    const QString &direction,
+    const QString &content
+    );
 
 signals:
     void errorOccurred(const QString &message);

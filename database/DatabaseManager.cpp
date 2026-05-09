@@ -79,6 +79,21 @@ bool DatabaseManager::initialize()
         return false;
     }
 
+    //创建 packet_log 表的 SQL 语句
+    const QString packetSql =
+    "CREATE TABLE IF NOT EXISTS packet_log ("
+    "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+    "log_time TEXT NOT NULL,"
+    "category TEXT NOT NULL,"
+    "direction TEXT,"
+    "content TEXT"
+    ")";
+
+    if (!query.exec(packetSql)) {
+        emit errorOccurred(query.lastError().text());
+        return false;
+    }
+
     return true;
 }
 
@@ -357,4 +372,84 @@ QList<AlarmRecord> DatabaseManager::queryAlarmRecords(
     return records;
 }
 
+void DatabaseManager::savePacketLog(
+    const QDateTime &time,
+    const QString &category,
+    const QString &direction,
+    const QString &content
+)
+{
+    if (!database.isOpen()) {
+        emit errorOccurred("database is not open");
+        return;
+    }
+
+    QSqlQuery query(database);
+    query.prepare(
+        "INSERT INTO packet_log "
+        "(log_time, category, direction, content) "
+        "VALUES "
+        "(:log_time, :category, :direction, :content)"
+    );
+
+    query.bindValue(":log_time", time.toString(Qt::ISODate));
+    query.bindValue(":category", category);
+    query.bindValue(":direction", direction);
+    query.bindValue(":content", content);
+
+    if (!query.exec()) {
+        emit errorOccurred(query.lastError().text());
+    }
+}
+
+QList<QStringList> DatabaseManager::queryPacketLogs(
+    const QDateTime &beginTime,
+    const QDateTime &endTime,
+    const QString &category
+)
+{
+    QList<QStringList> logs;
+
+    if (!database.isOpen()) {
+        emit errorOccurred("database is not open");
+        return logs;
+    }
+
+    QString sql =
+        "SELECT log_time, category, direction, content "
+        "FROM packet_log "
+        "WHERE log_time >= :begin_time "
+        "AND log_time <= :end_time ";
+
+    if (!category.trimmed().isEmpty() && category != "All") {
+        sql += "AND category = :category ";
+    }
+
+    sql += "ORDER BY log_time DESC";
+
+    QSqlQuery query(database);
+    query.prepare(sql);
+    query.bindValue(":begin_time", beginTime.toString(Qt::ISODate));
+    query.bindValue(":end_time", endTime.toString(Qt::ISODate));
+
+    if (!category.trimmed().isEmpty() && category != "All") {
+        query.bindValue(":category", category);
+    }
+
+    if (!query.exec()) {
+        emit errorOccurred(query.lastError().text());
+        return logs;
+    }
+
+    while (query.next()) {
+        QStringList row;
+        row << query.value("log_time").toString();
+        row << query.value("category").toString();
+        row << query.value("direction").toString();
+        row << query.value("content").toString();
+        logs.append(row);
+    }
+
+    return logs;
+}
 
