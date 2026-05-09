@@ -52,6 +52,10 @@ if(ANDROID)
     ui/AlarmPanel.cpp
     ui/HistoryPanel.h
     ui/HistoryPanel.cpp
+    ui/AlarmHistoryPanel.h
+    ui/AlarmHistoryPanel.cpp
+    ui/AlarmConfigPanel.h
+    ui/AlarmConfigPanel.cpp
     communication/IModbusClient.h
     communication/QtModbusClient.h
     communication/QtModbusClient.cpp
@@ -87,6 +91,10 @@ else()
     ui/AlarmPanel.cpp
     ui/HistoryPanel.h
     ui/HistoryPanel.cpp
+    ui/AlarmHistoryPanel.h
+    ui/AlarmHistoryPanel.cpp
+    ui/AlarmConfigPanel.h
+    ui/AlarmConfigPanel.cpp
     communication/IModbusClient.h
     communication/QtModbusClient.h
     communication/QtModbusClient.cpp

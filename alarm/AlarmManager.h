@@ -13,10 +13,14 @@ class AlarmManager : public QObject
 public:
     explicit AlarmManager(QObject *parent = nullptr);
 
+    double temperatureHighLimitValue() const;
+    double voltageLowLimitValue() const;
+
 public slots:
     void checkValue(const EngineeringValue &value);
     void onDeviceOffline();
     void onDeviceOfflineForDevice(const QString &deviceId);
+    void setAlarmLimits(double temperatureHighLimit, double voltageLowLimit);
 
 signals:
     void alarmRaised(const AlarmRecord &alarm);

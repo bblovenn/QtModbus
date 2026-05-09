@@ -4,6 +4,8 @@
 #include "../core/AlarmRecord.h"
 
 #include <QWidget>
+#include <QDateTime>
+#include <QAbstractItemView>
 
 class QPushButton;
 class QTableWidget;
@@ -19,6 +21,9 @@ public slots:
     void appendAlarm(const AlarmRecord &alarm);
     void confirmSelectedAlarm();
     void clear();
+
+signals:
+    void alarmConfirmed(const QString &alarmId, const QDateTime &confirmedTime);
 
 private:
     void setupUi();

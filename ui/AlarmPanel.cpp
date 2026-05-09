@@ -7,6 +7,8 @@
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QVBoxLayout>
+#include <Qt>
+#include <QAbstractItemView>
 
 AlarmPanel::AlarmPanel(QWidget *parent)
     : QWidget(parent)
@@ -49,7 +51,12 @@ void AlarmPanel::appendAlarm(const AlarmRecord &alarm)
     const int row = table->rowCount();
     table->insertRow(row);
 
-    table->setItem(row, 0, new QTableWidgetItem(alarm.alarmTime.toString("yyyy-MM-dd HH:mm:ss")));
+    auto *timeItem = new QTableWidgetItem(
+        alarm.alarmTime.toString("yyyy-MM-dd HH:mm:ss")
+    );
+    timeItem->setData(Qt::UserRole, alarm.id);
+
+    table->setItem(row, 0, timeItem);
     table->setItem(row, 1, new QTableWidgetItem(alarm.deviceId));
     table->setItem(row, 2, new QTableWidgetItem(alarmTypeText(alarm.type)));
     table->setItem(row, 3, new QTableWidgetItem(alarmLevelText(alarm.level)));
@@ -62,16 +69,33 @@ void AlarmPanel::appendAlarm(const AlarmRecord &alarm)
 
 void AlarmPanel::confirmSelectedAlarm()
 {
+    // 获取当前选中的行号
     const int row = table->currentRow();
 
     if (row < 0) {
         return;
     }
 
+    // 获取该行第0列（时间列）的单元格
+    QTableWidgetItem *timeItem = table->item(row, 0);
+    if (!timeItem) {
+        return;
+    }
+
+    const QString alarmId = timeItem->data(Qt::UserRole).toString();
+    if (alarmId.isEmpty()) {
+        return;
+    }
+
+    const QDateTime confirmedTime = QDateTime::currentDateTime();
+
     table->setItem(row, 7, new QTableWidgetItem("是"));
     table->setItem(row, 8, new QTableWidgetItem(
-        QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss")
+        confirmedTime.toString("yyyy-MM-dd HH:mm:ss")
     ));
+
+    // 发射报警确认信号，通知外部（如 DatabaseManager 更新数据库）
+    emit alarmConfirmed(alarmId, confirmedTime);
 }
 
 void AlarmPanel::clear()

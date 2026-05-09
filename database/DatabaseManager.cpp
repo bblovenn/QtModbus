@@ -18,6 +18,7 @@ DatabaseManager::~DatabaseManager()
     if (database.isOpen()) {
         database.close();
     }
+    database = QSqlDatabase();
     QSqlDatabase::removeDatabase(connectionName);
 }
 
@@ -131,8 +132,8 @@ void DatabaseManager::saveAlarmRecord(const AlarmRecord &alarm)
     query.bindValue(":alarm_id", alarm.id);
     query.bindValue(":alarm_time", alarm.alarmTime.toString(Qt::ISODate));
     query.bindValue(":device_id", alarm.deviceId);
-    query.bindValue(":alarm_type", alarmTypeText(alarm.type));   // 枚举转英文
-    query.bindValue(":alarm_level", alarmLevelText(alarm.level));  // 枚举转英文
+    query.bindValue(":alarm_type", alarmTypeText(alarm.type));   // 枚举转中文
+    query.bindValue(":alarm_level", alarmLevelText(alarm.level)); // 枚举转中文
     query.bindValue(":current_value", alarm.currentValue);
     query.bindValue(":threshold_value", alarm.thresholdValue);
     query.bindValue(":message", alarm.message);
@@ -148,39 +149,58 @@ void DatabaseManager::saveAlarmRecord(const AlarmRecord &alarm)
     }
 }
 
-// 报警类型枚举转英文字符串
+// 报警类型枚举转中文字符串，数据库中也保存中文。
 QString DatabaseManager::alarmTypeText(AlarmType type) const
 {
     switch (type) {
     case AlarmType::TemperatureHigh:
-        return "TemperatureHigh";
+        return "温度过高";
     case AlarmType::VoltageLow:
-        return "VoltageLow";
+        return "电压过低";
     case AlarmType::DeviceOffline:
-        return "DeviceOffline";
+        return "设备离线";
     case AlarmType::CommunicationTimeout:
-        return "CommunicationTimeout";
+        return "通信超时";
     case AlarmType::ModbusException:
-        return "ModbusException";
+        return "Modbus异常";
     }
 
-    return "Unknown";
+    return "未知";
 }
 
-// 报警等级枚举转英文字符串
+// 报警等级枚举转中文字符串，数据库中也保存中文。
 QString DatabaseManager::alarmLevelText(AlarmLevel level) const
 {
     switch (level) {
     case AlarmLevel::Info:
-        return "Info";
+        return "提示";
     case AlarmLevel::Warning:
-        return "Warning";
+        return "警告";
     case AlarmLevel::Critical:
-        return "Critical";
+        return "严重";
     }
 
-    return "Unknown";
+    return "未知";
 }
+
+AlarmType DatabaseManager::alarmTypeFromText(const QString &text) const
+{
+    if (text == "温度过高" || text == "TemperatureHigh") return AlarmType::TemperatureHigh;
+    if (text == "电压过低" || text == "VoltageLow") return AlarmType::VoltageLow;
+    if (text == "设备离线" || text == "DeviceOffline") return AlarmType::DeviceOffline;
+    if (text == "通信超时" || text == "CommunicationTimeout") return AlarmType::CommunicationTimeout;
+    if (text == "Modbus异常" || text == "ModbusException") return AlarmType::ModbusException;
+    return AlarmType::TemperatureHigh;
+}
+
+AlarmLevel DatabaseManager::alarmLevelFromText(const QString &text) const
+{
+    if (text == "提示" || text == "Info") return AlarmLevel::Info;
+    if (text == "警告" || text == "Warning") return AlarmLevel::Warning;
+    if (text == "严重" || text == "Critical") return AlarmLevel::Critical;
+    return AlarmLevel::Warning;
+}
+
 
 // 查询指定设备和时间范围内的工程值列表
 QList<EngineeringValue> DatabaseManager::queryEngineeringValues(
@@ -233,5 +253,108 @@ QList<EngineeringValue> DatabaseManager::queryEngineeringValues(
     return values;
 }
 
+void DatabaseManager::confirmAlarm(const QString &alarmId, const QDateTime &confirmedTime)
+{
+    if (!database.isOpen()) {
+        emit errorOccurred("database is not open");
+        return;
+    }
+
+    QSqlQuery query(database);
+    query.prepare(
+        "UPDATE alarm_log "
+        "SET confirmed = 1, "
+        "confirmed_time = :confirmed_time "
+        "WHERE alarm_id = :alarm_id"
+    );
+
+    query.bindValue(":confirmed_time", confirmedTime.toString(Qt::ISODate));
+    query.bindValue(":alarm_id", alarmId);
+
+    if (!query.exec()) {
+        emit errorOccurred(query.lastError().text());
+        return;
+    }
+
+    if (query.numRowsAffected() <= 0) {
+        emit errorOccurred("alarm record not found: " + alarmId);
+    }
+}
+
+QList<AlarmRecord> DatabaseManager::queryAlarmRecords(
+    const QString &deviceId,
+    const QDateTime &beginTime,
+    const QDateTime &endTime,
+    int confirmedFilter
+)
+{
+    QList<AlarmRecord> records;
+
+    if (!database.isOpen()) {
+        emit errorOccurred("database is not open");
+        return records;
+    }
+
+    QString sql =
+        "SELECT alarm_id, alarm_time, device_id, alarm_type, alarm_level, "
+        "current_value, threshold_value, message, confirmed, confirmed_time "
+        "FROM alarm_log "
+        "WHERE alarm_time >= :begin_time "
+        "AND alarm_time <= :end_time ";
+
+    if (!deviceId.trimmed().isEmpty()) {
+        sql += "AND device_id = :device_id ";
+    }
+
+    //只有当过滤条件是 0 或 1 时才添加此条件
+    if (confirmedFilter == 0 || confirmedFilter == 1) {
+        sql += "AND confirmed = :confirmed ";
+    }
+
+    //按报警时间降序排列（最新的记录排在最前面）
+    sql += "ORDER BY alarm_time DESC";
+
+    QSqlQuery query(database);
+    query.prepare(sql);
+
+    query.bindValue(":begin_time", beginTime.toString(Qt::ISODate));
+    query.bindValue(":end_time", endTime.toString(Qt::ISODate));
+
+    if (!deviceId.trimmed().isEmpty()) {
+        query.bindValue(":device_id", deviceId.trimmed());
+    }
+
+    //绑定确认状态过滤参数
+    if (confirmedFilter == 0 || confirmedFilter == 1) {
+        query.bindValue(":confirmed", confirmedFilter);
+    }
+
+    if (!query.exec()) {
+        emit errorOccurred(query.lastError().text());
+        return records;
+    }
+
+    while (query.next()) {
+        AlarmRecord record;
+        record.id = query.value("alarm_id").toString();
+        record.alarmTime = QDateTime::fromString(query.value("alarm_time").toString(), Qt::ISODate);
+        record.deviceId = query.value("device_id").toString();
+        record.type = alarmTypeFromText(query.value("alarm_type").toString());
+        record.level = alarmLevelFromText(query.value("alarm_level").toString());
+        record.currentValue = query.value("current_value").toDouble();
+        record.thresholdValue = query.value("threshold_value").toDouble();
+        record.message = query.value("message").toString();
+        record.confirmed = query.value("confirmed").toInt() != 0;
+
+        const QString confirmedTimeText = query.value("confirmed_time").toString();
+        if (!confirmedTimeText.isEmpty()) {
+            record.confirmedTime = QDateTime::fromString(confirmedTimeText, Qt::ISODate);
+        }
+
+        records.append(record);
+    }
+
+    return records;
+}
 
 

@@ -15,11 +15,14 @@
 #include "./ui/MonitorPanel.h"
 #include "./ui/PacketMonitorPanel.h"
 #include "./ui/RegisterPanel.h"
+#include "./ui/AlarmHistoryPanel.h"
+#include "./ui/AlarmConfigPanel.h"
 
 #include <QDateTime>
 #include <QStatusBar>
 #include <QString>
 #include <QTabWidget>
+#include <QSettings> //持久化配置存储类，用于保存和加载应用程序的设置
 
 namespace {
 
@@ -66,21 +69,56 @@ void MainWindow::setupMainTabs()
     DatabaseManager *databaseManager = new DatabaseManager(this);
 
     HistoryPanel *historyPanel = new HistoryPanel(databaseManager, tabs);
+    AlarmHistoryPanel *alarmHistoryPanel = new AlarmHistoryPanel(databaseManager, tabs);
+
+    QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
+
+    const double savedTemperatureHighLimit =
+        settings.value(
+            "界限/最高温度",
+            alarmManager->temperatureHighLimitValue()
+        ).toDouble();
+
+    const double savedVoltageLowLimit =
+        settings.value(
+            "界限/最低电压",
+            alarmManager->voltageLowLimitValue()
+        ).toDouble();
+
+    alarmManager->setAlarmLimits(savedTemperatureHighLimit, savedVoltageLowLimit);
+
+    AlarmConfigPanel *alarmConfigPanel = new AlarmConfigPanel(tabs);
+
+    alarmConfigPanel->setInitialLimits(
+        savedTemperatureHighLimit,
+        savedVoltageLowLimit
+    );
+
+    QTabWidget *historyTabs = new QTabWidget(tabs);
+    historyTabs->addTab(historyPanel, "采集数据日志");
+    historyTabs->addTab(alarmHistoryPanel, "报警日志");
 
     tabs->addTab(connectionPanel, "设备连接");
     tabs->addTab(registerPanel, "寄存器调试");
     tabs->addTab(monitorPanel, "实时监控");
     tabs->addTab(alarmPanel, "报警记录");
-    tabs->addTab(historyPanel, "历史查询");
+    tabs->addTab(alarmConfigPanel, "报警配置");
+    tabs->addTab(historyTabs, "历史查询");
     tabs->addTab(packetPanel, "报文日志");
 
     // 数据库只打开和初始化一次，采集数据与报警记录共用同一个数据库连接。
     if (databaseManager->open("modbus_hmi.db") && databaseManager->initialize()) {
         connect(pollingWorker, &PollingWorker::engineeringValueReady,
-            databaseManager, &DatabaseManager::saveEngineeringValue);
+            databaseManager, &DatabaseManager::saveEngineeringValue
+        );
 
         connect(alarmManager, &AlarmManager::alarmRaised,
-            databaseManager, &DatabaseManager::saveAlarmRecord);
+            databaseManager, &DatabaseManager::saveAlarmRecord
+        );
+
+        connect(alarmPanel, &AlarmPanel::alarmConfirmed,
+            databaseManager, &DatabaseManager::confirmAlarm
+        );
     }
 
     connect(databaseManager, &DatabaseManager::errorOccurred,
@@ -264,6 +302,24 @@ void MainWindow::setupMainTabs()
                     .arg(alarm.message)
             );
     });
+
+    connect(alarmConfigPanel, &AlarmConfigPanel::alarmLimitsChanged,
+    alarmManager, &AlarmManager::setAlarmLimits
+    );
+
+    connect(alarmConfigPanel, &AlarmConfigPanel::alarmLimitsChanged,
+    this, [this](double temperatureHighLimit, double voltageLowLimit) {
+        QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
+        settings.setValue("界限/最高温度", temperatureHighLimit);
+        settings.setValue("界限/最低电压", voltageLowLimit);
+
+        statusBar()->showMessage(
+            QString("界限更改为: 温度 > %1, 电压 < %2")
+                .arg(temperatureHighLimit)
+                .arg(voltageLowLimit)
+        );
+    });
+
 
     setCentralWidget(tabs);
 }

@@ -91,3 +91,23 @@ AlarmRecord AlarmManager::createAlarm(
 
     return alarm;
 }
+
+double AlarmManager::temperatureHighLimitValue() const
+{
+    return temperatureHighLimit;
+}
+
+double AlarmManager::voltageLowLimitValue() const
+{
+    return voltageLowLimit;
+}
+
+void AlarmManager::setAlarmLimits(double newTemperatureHighLimit, double newVoltageLowLimit)
+{
+    temperatureHighLimit = newTemperatureHighLimit;
+    voltageLowLimit = newVoltageLowLimit;
+
+    temperatureHighActive = false;
+    voltageLowActive = false;
+}
+
