@@ -17,6 +17,10 @@
 #include "./ui/RegisterPanel.h"
 #include "./ui/AlarmHistoryPanel.h"
 #include "./ui/AlarmConfigPanel.h"
+#include "./ui/PacketHistoryPanel.h"
+#include "./ui/DatabaseMaintenancePanel.h"
+#include "./ui/PollingConfigPanel.h"
+#include "./ui/TrendPanel.h"
 
 #include <QDateTime>
 #include <QStatusBar>
@@ -53,9 +57,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupMainTabs()
 {
-
-    
-
     // 主标签页负责承载各个功能面板，所有面板统一挂到 tabs 下管理生命周期。
     tabs = new QTabWidget(this);
 
@@ -64,6 +65,7 @@ void MainWindow::setupMainTabs()
     MonitorPanel *monitorPanel = new MonitorPanel(tabs);
     AlarmPanel *alarmPanel = new AlarmPanel(tabs);
     PacketMonitorPanel *packetPanel = new PacketMonitorPanel(tabs);
+    TrendPanel *trendPanel = new TrendPanel(tabs);
 
     // 核心业务对象由主窗口持有，随主窗口销毁自动释放。
     QtModbusClient *modbusClient = new QtModbusClient(this);
@@ -73,6 +75,10 @@ void MainWindow::setupMainTabs()
 
     HistoryPanel *historyPanel = new HistoryPanel(databaseManager, tabs);
     AlarmHistoryPanel *alarmHistoryPanel = new AlarmHistoryPanel(databaseManager, tabs);
+
+    PacketHistoryPanel *packetHistoryPanel = new PacketHistoryPanel(databaseManager, tabs);
+
+    DatabaseMaintenancePanel *databaseMaintenancePanel = new DatabaseMaintenancePanel(databaseManager, tabs);
 
     //设计模式：这是一个观察者/发布-订阅模式的变体
     //lambda 表达式（匿名函数），用于持久化记录通信报文日志
@@ -102,6 +108,31 @@ void MainWindow::setupMainTabs()
 
     QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
 
+    DeviceConfig savedDeviceConfig;   
+    savedDeviceConfig.mode = static_cast<ModbusMode>(
+        settings.value("connection/mode", static_cast<int>(ModbusMode::Tcp)).toInt()
+    );
+
+    savedDeviceConfig.tcp.host = settings.value("connection/tcpHost", "127.0.0.1").toString();
+    savedDeviceConfig.tcp.port = settings.value("connection/tcpPort", 5020).toInt();
+    savedDeviceConfig.serial.portName = settings.value("connection/serialPort", "COM13").toString();
+    savedDeviceConfig.serial.baudRate = settings.value("connection/baudRate", 9600).toInt();
+    savedDeviceConfig.slaveId = settings.value("connection/slaveId", 1).toInt();
+
+    connectionPanel->setInitialConfig(savedDeviceConfig);
+
+    pollingIntervalMs = settings.value("polling/intervalMs", 1000).toInt();
+    pollingStartAddress = settings.value("polling/startAddress", 0).toInt();
+    pollingCount = settings.value("polling/count", 4).toInt();
+
+    // 轮询配置面板负责显示和修改轮询参数，修改后发出信号通知主窗口更新配置并持久化。
+    PollingConfigPanel *pollingConfigPanel = new PollingConfigPanel(tabs);
+    pollingConfigPanel->setInitialConfig(
+        pollingIntervalMs,
+        pollingStartAddress,
+        pollingCount
+    );
+
     const double savedTemperatureHighLimit =
         settings.value(
             "界限/最高温度",
@@ -126,13 +157,16 @@ void MainWindow::setupMainTabs()
     QTabWidget *historyTabs = new QTabWidget(tabs);
     historyTabs->addTab(historyPanel, "采集数据日志");
     historyTabs->addTab(alarmHistoryPanel, "报警日志");
-
+    historyTabs->addTab(packetHistoryPanel, "报文日志");
     tabs->addTab(connectionPanel, "设备连接");
     tabs->addTab(registerPanel, "寄存器调试");
     tabs->addTab(monitorPanel, "实时监控");
+    tabs->addTab(trendPanel, "实时曲线");
+    tabs->addTab(pollingConfigPanel, "采集配置");
     tabs->addTab(alarmPanel, "报警记录");
     tabs->addTab(alarmConfigPanel, "报警配置");
     tabs->addTab(historyTabs, "历史查询");
+    tabs->addTab(databaseMaintenancePanel, "数据库维护");
     tabs->addTab(packetPanel, "报文日志");
 
     // 数据库只打开和初始化一次，采集数据与报警记录共用同一个数据库连接。
@@ -148,6 +182,8 @@ void MainWindow::setupMainTabs()
         connect(alarmPanel, &AlarmPanel::alarmConfirmed,
             databaseManager, &DatabaseManager::confirmAlarm
         );
+
+        databaseMaintenancePanel->refreshInfo();
     }
 
     connect(databaseManager, &DatabaseManager::errorOccurred,
@@ -161,10 +197,12 @@ void MainWindow::setupMainTabs()
 
     // 连接面板只负责发出用户意图，真正的连接和断开由 Modbus 客户端执行。
     connect(connectionPanel, &ConnectionPanel::connectRequested,
-        modbusClient, &QtModbusClient::connectDevice);
+        modbusClient, &QtModbusClient::connectDevice
+    );
 
     connect(connectionPanel, &ConnectionPanel::disconnectRequested,
-        modbusClient, &QtModbusClient::disconnectDevice);
+        modbusClient, &QtModbusClient::disconnectDevice
+    );
 
     connect(connectionPanel, &ConnectionPanel::connectRequested,
         this, [this](const DeviceConfig &config) {
@@ -176,6 +214,18 @@ void MainWindow::setupMainTabs()
     connect(connectionPanel, &ConnectionPanel::disconnectRequested,
         this, [this]() {
             statusBar()->showMessage("已断开");
+    });
+
+    connect(connectionPanel, &ConnectionPanel::connectRequested,
+    this, [](const DeviceConfig &config) {
+        QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
+
+        settings.setValue("connection/mode", static_cast<int>(config.mode));
+        settings.setValue("connection/tcpHost", config.tcp.host);
+        settings.setValue("connection/tcpPort", config.tcp.port);
+        settings.setValue("connection/serialPort", config.serial.portName);
+        settings.setValue("connection/baudRate", config.serial.baudRate);
+        settings.setValue("connection/slaveId", config.slaveId);
     });
 
     connect(modbusClient, &QtModbusClient::connected,
@@ -195,31 +245,73 @@ void MainWindow::setupMainTabs()
 
     // 寄存器调试面板发起读写请求，Modbus 客户端返回结果后再刷新表格。
     connect(registerPanel, &RegisterPanel::readHoldingRegistersRequested,
-        modbusClient, &QtModbusClient::readHoldingRegisters);
+        modbusClient, &QtModbusClient::readHoldingRegisters
+    );
 
     connect(registerPanel, &RegisterPanel::writeSingleHoldingRegisterRequested,
-        modbusClient, &QtModbusClient::writeSingleHoldingRegister);
+        modbusClient, &QtModbusClient::writeSingleHoldingRegister
+    );
 
     connect(modbusClient, &QtModbusClient::holdingRegistersRead,
-        registerPanel, &RegisterPanel::displayHoldingRegisters);
+        registerPanel, &RegisterPanel::displayHoldingRegisters
+    );
 
     // 连接成功后启动周期轮询；断开后停止轮询，避免继续发送读请求。
     connect(modbusClient, &QtModbusClient::connected,
-        pollingWorker, [pollingWorker]() {
-            pollingWorker->start(1000, 0, 4);
+        this, [this, pollingWorker]() {
+            modbusConnected = true;
+            pollingWorker->start(
+                pollingIntervalMs,
+                pollingStartAddress,
+                pollingCount
+            );
     });
 
     connect(modbusClient, &QtModbusClient::disconnected,
-        pollingWorker, &PollingWorker::stop);
+    this, [this, pollingWorker]() {
+        modbusConnected = false;
+        pollingWorker->stop();
+    });
 
     connect(pollingWorker, &PollingWorker::readRequested,
-        modbusClient, &QtModbusClient::readHoldingRegisters);
+        modbusClient, &QtModbusClient::readHoldingRegisters
+    );
 
     connect(modbusClient, &QtModbusClient::holdingRegistersRead,
-        pollingWorker, &PollingWorker::onRegistersRead);
+        pollingWorker, &PollingWorker::onRegistersRead
+    );
 
     connect(modbusClient, &QtModbusClient::errorOccurred,
-        pollingWorker, &PollingWorker::onError);
+        pollingWorker, &PollingWorker::onError
+    );
+
+    // 轮询配置更改后，立即应用新配置并持久化到磁盘，重启轮询以应用新参数。
+    connect(pollingConfigPanel, &PollingConfigPanel::pollingConfigChanged,
+    this, [this, pollingWorker](int intervalMs, int startAddress, int count) {
+        pollingIntervalMs = intervalMs;
+        pollingStartAddress = startAddress;
+        pollingCount = count;
+
+        QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
+        settings.setValue("polling/intervalMs", pollingIntervalMs);
+        settings.setValue("polling/startAddress", pollingStartAddress);
+        settings.setValue("polling/count", pollingCount);
+
+        if (modbusConnected) {
+            pollingWorker->start(
+                pollingIntervalMs,
+                pollingStartAddress,
+                pollingCount
+            );
+        }
+
+        statusBar()->showMessage(
+            QString("Polling config saved: interval=%1 ms, start=%2, count=%3")
+                .arg(pollingIntervalMs)
+                .arg(pollingStartAddress)
+                .arg(pollingCount)
+        );
+    });
 
     // 轮询结果先更新实时监控，再交给报警管理器判断是否越限。
     connect(pollingWorker, &PollingWorker::engineeringValueReady,
@@ -241,10 +333,12 @@ void MainWindow::setupMainTabs()
 
     // 轮询连续失败或远端异常断开时，统一交给报警管理器生成离线报警。
     connect(pollingWorker, &PollingWorker::deviceOffline,
-        alarmManager, &AlarmManager::onDeviceOffline);
+        alarmManager, &AlarmManager::onDeviceOffline
+    );
 
     connect(modbusClient, &QtModbusClient::unexpectedDisconnected,
-        alarmManager, &AlarmManager::onDeviceOfflineForDevice);
+        alarmManager, &AlarmManager::onDeviceOfflineForDevice
+    );
 
     connect(pollingWorker, &PollingWorker::deviceOffline,
         this, [this]() {
@@ -252,7 +346,8 @@ void MainWindow::setupMainTabs()
     });
 
     connect(alarmManager, &AlarmManager::alarmRaised,
-        alarmPanel, &AlarmPanel::appendAlarm);
+        alarmPanel, &AlarmPanel::appendAlarm
+    );
 
     connect(alarmManager, &AlarmManager::alarmRaised,
         this, [this](const AlarmRecord &alarm) {
@@ -351,6 +446,9 @@ void MainWindow::setupMainTabs()
         );
     });
 
+    connect(pollingWorker, &PollingWorker::engineeringValueReady,
+        trendPanel, &TrendPanel::appendValue
+    );
 
     setCentralWidget(tabs);
 }

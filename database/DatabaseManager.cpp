@@ -443,7 +443,8 @@ QList<QStringList> DatabaseManager::queryPacketLogs(
 
     while (query.next()) {
         QStringList row;
-        row << query.value("log_time").toString();
+        const QDateTime time = QDateTime::fromString(query.value("log_time").toString(), Qt::ISODate);
+        row << time.toString("yyyy-MM-dd HH:mm:ss.zzz");
         row << query.value("category").toString();
         row << query.value("direction").toString();
         row << query.value("content").toString();
@@ -451,5 +452,104 @@ QList<QStringList> DatabaseManager::queryPacketLogs(
     }
 
     return logs;
+}
+
+QString DatabaseManager::databaseFilePath() const
+{
+    return database.databaseName();
+}
+
+int DatabaseManager::tableRowCount(const QString &tableName)
+{
+    if (!database.isOpen()) {
+        emit errorOccurred("database is not open");
+        return 0;
+    }
+
+    const QStringList allowedTables = {
+        "collect_data", "alarm_log", "packet_log"
+    };
+
+    if (!allowedTables.contains(tableName)) {
+        emit errorOccurred("invalid table name: " + tableName);
+        return 0;
+    }
+
+    QSqlQuery query(database);
+    if (!query.exec(QString("SELECT COUNT(*) FROM %1").arg(tableName))) {
+        emit errorOccurred(query.lastError().text());
+        return 0;
+    }
+
+    if (query.next()) {
+        return query.value(0).toInt();
+    }
+
+    return 0;
+}
+
+bool DatabaseManager::deleteDataBefore(const QDateTime &cutoffTime)
+{
+    if (!database.isOpen()) {
+        emit errorOccurred("database is not open");
+        return false;
+    }
+
+    const QString cutoff = cutoffTime.toString(Qt::ISODate);
+
+    QSqlQuery query(database);
+
+    if (!query.exec("BEGIN TRANSACTION")) {
+        emit errorOccurred(query.lastError().text());
+        return false;
+    }
+
+    query.prepare("DELETE FROM collect_data WHERE collect_time < :cutoff");
+    query.bindValue(":cutoff", cutoff);
+    if (!query.exec()) {
+        emit errorOccurred(query.lastError().text());
+        database.rollback();
+        return false;
+    }
+
+    query.prepare("DELETE FROM alarm_log WHERE alarm_time < :cutoff");
+    query.bindValue(":cutoff", cutoff);
+    if (!query.exec()) {
+        emit errorOccurred(query.lastError().text());
+        database.rollback();
+        return false;
+    }
+
+    query.prepare("DELETE FROM packet_log WHERE log_time < :cutoff");
+    query.bindValue(":cutoff", cutoff);
+    if (!query.exec()) {
+        emit errorOccurred(query.lastError().text());
+        database.rollback();
+        return false;
+    }
+
+    if (!query.exec("COMMIT")) {
+        emit errorOccurred(query.lastError().text());
+        database.rollback();
+        return false;
+    }
+
+    return true;
+}
+
+bool DatabaseManager::vacuum()
+{
+    if (!database.isOpen()) {
+        emit errorOccurred("database is not open");
+        return false;
+    }
+
+    QSqlQuery query(database);
+    if (!query.exec("VACUUM")) {
+        emit errorOccurred(query.lastError().text());
+        return false;
+    }
+
+    return true;
 }
 

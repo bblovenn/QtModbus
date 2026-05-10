@@ -16,6 +16,7 @@ class ConnectionPanel : public QWidget
 
 public:
     explicit ConnectionPanel(QWidget *parent = nullptr);
+    void setInitialConfig(const DeviceConfig &config);
 
 signals:
     void connectRequested(const DeviceConfig &config);

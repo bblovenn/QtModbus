@@ -20,6 +20,10 @@ public:
 
     bool open(const QString &databasePath);
     bool initialize(); // 初始化表结构（建表）
+    QString databaseFilePath() const; 
+    int tableRowCount(const QString &tableName); // 返回指定表的行数
+    bool deleteDataBefore(const QDateTime &cutoffTime);  //删除 cutoffTime 之前的所有记录
+    bool vacuum();//回收已删除数据占用的磁盘空间
 
     QList<EngineeringValue> queryEngineeringValues(
     const QString &deviceId,

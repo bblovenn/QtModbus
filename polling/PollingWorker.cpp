@@ -34,6 +34,10 @@ void PollingWorker::stop()
 
 void PollingWorker::onRegistersRead(const RegisterReadResult &result)
 {
+    if (result.startAddress != startAddress || result.values.size() < count) {
+        return;
+    }
+
     failedCount = 0;
 
     EngineeringValue value = convertRegisters(result); // 原始寄存器值 → 工程值

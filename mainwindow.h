@@ -19,6 +19,10 @@ public:
 
 private:
     void setupMainTabs();
+    int pollingIntervalMs = 1000;
+    int pollingStartAddress = 0;
+    int pollingCount = 4;
+    bool modbusConnected = false;
 
 private:
     Ui::MainWindow *ui;

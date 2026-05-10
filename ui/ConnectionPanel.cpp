@@ -76,3 +76,35 @@ DeviceConfig ConnectionPanel::currentConfig() const
 
     return config;
 }
+
+void ConnectionPanel::setInitialConfig(const DeviceConfig &config)
+{
+    //模式下拉框（RTU / TCP / ASCII）
+    int modeIndex = modeCombo->findData(static_cast<int>(config.mode));
+    if (modeIndex >= 0) {
+        modeCombo->setCurrentIndex(modeIndex);
+    }
+
+    //串口号下拉框
+    int portIndex = serialPortCombo->findText(config.serial.portName);
+    if (portIndex < 0) {
+        serialPortCombo->addItem(config.serial.portName);
+        portIndex = serialPortCombo->findText(config.serial.portName);
+    }
+    serialPortCombo->setCurrentIndex(portIndex);
+
+    //波特率下拉框
+    const QString baudRateText = QString::number(config.serial.baudRate);
+    int baudIndex = baudRateCombo->findText(baudRateText);
+    if (baudIndex < 0) {
+        baudRateCombo->addItem(baudRateText);
+        baudIndex = baudRateCombo->findText(baudRateText);
+    }
+    baudRateCombo->setCurrentIndex(baudIndex);
+
+    hostEdit->setText(config.tcp.host);
+    portSpin->setValue(config.tcp.port);
+
+    //从站地址
+    slaveIdSpin->setValue(config.slaveId);
+}
