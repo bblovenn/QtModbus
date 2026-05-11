@@ -65,7 +65,8 @@ void TrendPanel::paintEvent(QPaintEvent *event)
     painter.setRenderHint(QPainter::Antialiasing, true); // 折线平滑
 
     // 留白区域：上 58px（标题 + 按钮栏），其余三边各 24px
-    QRect area = rect().adjusted(24, 58, -24, -24);
+    const int topMargin = pauseButton->isVisible() ? 58 : 16;
+    QRect area = rect().adjusted(24, topMargin, -24, -24);
 
     if (values.size() < 2) {
         painter.setPen(QColor(100, 100, 100));
@@ -205,4 +206,23 @@ void TrendPanel::drawSeries(QPainter &painter, const QRect &rect, int metricInde
     painter.drawPolyline(points);    // 不闭合的连续折线
 
     painter.restore(); // 恢复画笔 → 不影响后续行
+}
+
+// 直接替换整个数据集，适用于批量更新（如从文件加载历史数据），会清除旧数据并重绘
+void TrendPanel::setValues(const QVector<EngineeringValue> &newValues)
+{
+    values.clear();
+
+    for (const auto &value : newValues) {
+        values.append(value);
+    }
+
+    update();
+}
+
+void TrendPanel::setControlPanelVisible(bool visible)
+{
+    pauseButton->setVisible(visible);
+    clearButton->setVisible(visible);
+    update();
 }

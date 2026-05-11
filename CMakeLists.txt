@@ -64,9 +64,15 @@ if(ANDROID)
     ui/PollingConfigPanel.cpp
     ui/TrendPanel.h
     ui/TrendPanel.cpp
+    ui/HistoryTrendPanel.h
+    ui/HistoryTrendPanel.cpp
+    ui/SystemStatusPanel.h
+    ui/SystemStatusPanel.cpp
     communication/IModbusClient.h
     communication/QtModbusClient.h
     communication/QtModbusClient.cpp
+    communication/ReconnectController.h
+    communication/ReconnectController.cpp
     polling/PollingWorker.h
     polling/PollingWorker.cpp
     alarm/AlarmManager.h
@@ -111,9 +117,15 @@ else()
     ui/PollingConfigPanel.cpp
     ui/TrendPanel.h
     ui/TrendPanel.cpp
+    ui/HistoryTrendPanel.h
+    ui/HistoryTrendPanel.cpp
+    ui/SystemStatusPanel.h
+    ui/SystemStatusPanel.cpp
     communication/IModbusClient.h
     communication/QtModbusClient.h
     communication/QtModbusClient.cpp
+    communication/ReconnectController.h
+    communication/ReconnectController.cpp
     polling/PollingWorker.h
     polling/PollingWorker.cpp
     alarm/AlarmManager.h

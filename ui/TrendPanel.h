@@ -3,9 +3,13 @@
 
 #include "../core/EngineeringValue.h"
 
+#include <QColor>
+#include <QRect>
+#include <QString>
 #include <QWidget>
 #include <QVector>
 
+class QPainter;
 class QPushButton;
 
 class TrendPanel : public QWidget
@@ -17,6 +21,8 @@ public:
 
 public slots:
     void appendValue(const EngineeringValue &value);
+    void setValues(const QVector<EngineeringValue> &newValues);
+    void setControlPanelVisible(bool visible);
 
 private slots:
     void clearData();

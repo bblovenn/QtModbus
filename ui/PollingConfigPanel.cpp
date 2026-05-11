@@ -27,9 +27,6 @@ void PollingConfigPanel::setupUi()
     countSpin->setRange(4, 125);
     countSpin->setValue(4);
 
-    countSpin = new QSpinBox(this);
-    countSpin->setRange(1, 125);
-
     applyButton = new QPushButton("Apply", this);
     resetButton = new QPushButton("Reset", this);
 

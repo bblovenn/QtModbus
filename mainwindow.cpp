@@ -3,6 +3,7 @@
 
 #include "./alarm/AlarmManager.h"
 #include "./communication/QtModbusClient.h"
+#include "./communication/ReconnectController.h"
 #include "./core/AlarmRecord.h"
 #include "./core/DeviceConfig.h"
 #include "./core/EngineeringValue.h"
@@ -21,6 +22,8 @@
 #include "./ui/DatabaseMaintenancePanel.h"
 #include "./ui/PollingConfigPanel.h"
 #include "./ui/TrendPanel.h"
+#include "./ui/HistoryTrendPanel.h"
+#include "./ui/SystemStatusPanel.h"
 
 #include <QDateTime>
 #include <QStatusBar>
@@ -66,15 +69,18 @@ void MainWindow::setupMainTabs()
     AlarmPanel *alarmPanel = new AlarmPanel(tabs);
     PacketMonitorPanel *packetPanel = new PacketMonitorPanel(tabs);
     TrendPanel *trendPanel = new TrendPanel(tabs);
-
+    SystemStatusPanel *systemStatusPanel = new SystemStatusPanel(tabs);
     // 核心业务对象由主窗口持有，随主窗口销毁自动释放。
     QtModbusClient *modbusClient = new QtModbusClient(this);
     PollingWorker *pollingWorker = new PollingWorker(this);
     AlarmManager *alarmManager = new AlarmManager(this);
     DatabaseManager *databaseManager = new DatabaseManager(this);
+    ReconnectController *reconnectController = new ReconnectController(this);
 
     HistoryPanel *historyPanel = new HistoryPanel(databaseManager, tabs);
     AlarmHistoryPanel *alarmHistoryPanel = new AlarmHistoryPanel(databaseManager, tabs);
+
+    HistoryTrendPanel *historyTrendPanel = new HistoryTrendPanel(databaseManager, tabs);
 
     PacketHistoryPanel *packetHistoryPanel = new PacketHistoryPanel(databaseManager, tabs);
 
@@ -156,9 +162,11 @@ void MainWindow::setupMainTabs()
 
     QTabWidget *historyTabs = new QTabWidget(tabs);
     historyTabs->addTab(historyPanel, "采集数据日志");
+    historyTabs->addTab(historyTrendPanel, "历史曲线");
     historyTabs->addTab(alarmHistoryPanel, "报警日志");
     historyTabs->addTab(packetHistoryPanel, "报文日志");
     tabs->addTab(connectionPanel, "设备连接");
+    tabs->addTab(systemStatusPanel, "状态总览");
     tabs->addTab(registerPanel, "寄存器调试");
     tabs->addTab(monitorPanel, "实时监控");
     tabs->addTab(trendPanel, "实时曲线");
@@ -184,6 +192,7 @@ void MainWindow::setupMainTabs()
         );
 
         databaseMaintenancePanel->refreshInfo();
+        systemStatusPanel->setDatabaseReady(databaseManager->databaseFilePath());
     }
 
     connect(databaseManager, &DatabaseManager::errorOccurred,
@@ -450,5 +459,77 @@ void MainWindow::setupMainTabs()
         trendPanel, &TrendPanel::appendValue
     );
 
+    connect(connectionPanel, &ConnectionPanel::connectRequested,
+        systemStatusPanel, &SystemStatusPanel::setConnecting
+    );
+
+    connect(connectionPanel, &ConnectionPanel::disconnectRequested,
+        systemStatusPanel, &SystemStatusPanel::setDisconnected
+    );
+
+    connect(modbusClient, &QtModbusClient::connected,
+        systemStatusPanel, &SystemStatusPanel::setConnected
+    );
+
+    connect(modbusClient, &QtModbusClient::disconnected,
+        systemStatusPanel, &SystemStatusPanel::setDisconnected
+    );
+
+    connect(modbusClient, &QtModbusClient::errorOccurred,
+        systemStatusPanel, &SystemStatusPanel::setCommunicationError
+    );
+
+    connect(pollingWorker, &PollingWorker::pollingStarted,
+        systemStatusPanel, &SystemStatusPanel::setPollingStarted
+    );
+
+    connect(pollingWorker, &PollingWorker::pollingStopped,
+        systemStatusPanel, &SystemStatusPanel::setPollingStopped
+    );
+
+    connect(pollingWorker, &PollingWorker::engineeringValueReady,
+        systemStatusPanel, &SystemStatusPanel::updateEngineeringValue
+    );
+
+    connect(alarmManager, &AlarmManager::alarmRaised,
+        systemStatusPanel, &SystemStatusPanel::updateAlarm
+    );
+
+    connect(connectionPanel, &ConnectionPanel::connectRequested,
+        reconnectController, &ReconnectController::rememberConfig
+    );
+
+    connect(connectionPanel, &ConnectionPanel::disconnectRequested,
+        reconnectController, &ReconnectController::stopReconnect
+    );
+
+    connect(modbusClient, &QtModbusClient::connected,
+        reconnectController, &ReconnectController::stopReconnect
+    );
+
+    connect(modbusClient, &QtModbusClient::unexpectedDisconnected,
+        reconnectController, &ReconnectController::scheduleReconnect
+    );
+
+    connect(reconnectController, &ReconnectController::reconnectRequested,
+        modbusClient, &QtModbusClient::connectDevice
+    );
+
+    connect(reconnectController, &ReconnectController::reconnectMessage,
+    this, [this](const QString &message) {
+        statusBar()->showMessage(message);
+    });
+
+    connect(reconnectController, &ReconnectController::reconnectMessage,
+        packetPanel, [appendPersistentLog](const QString &message) {
+            appendPersistentLog("Connection", "AUTO", message);
+    });
+
+    connect(reconnectController, &ReconnectController::reconnectRequested,
+        systemStatusPanel, &SystemStatusPanel::setConnecting
+    );
+
     setCentralWidget(tabs);
 }
+
+
