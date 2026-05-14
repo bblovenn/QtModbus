@@ -11,6 +11,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QStringConverter>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QTextStream>
@@ -143,7 +144,7 @@ void HistoryPanel::exportCsv()
     }
 
     QTextStream out(&file);
-    out.setCodec("UTF-8");
+    out.setEncoding(QStringConverter::Utf8);
     out.setGenerateByteOrderMark(true);
 
     out << csvEscape(text(u8"时间")) << ","

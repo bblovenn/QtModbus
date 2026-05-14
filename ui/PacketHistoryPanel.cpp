@@ -11,6 +11,7 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QStringConverter>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QTextStream>
@@ -131,7 +132,7 @@ void PacketHistoryPanel::exportCsv()
     }
 
     QTextStream out(&file);
-    out.setCodec("UTF-8");
+    out.setEncoding(QStringConverter::Utf8);
     out.setGenerateByteOrderMark(true);
 
     out << csvEscape("Time") << ","

@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 
+if(APPLE AND NOT DEFINED CMAKE_OSX_ARCHITECTURES)
+  set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architecture for Apple Silicon")
+endif()
+
+if(APPLE AND EXISTS "/Users/bbnn/Qt/6.10.3/macos/lib/cmake/Qt6/Qt6Config.cmake")
+  list(PREPEND CMAKE_PREFIX_PATH "/Users/bbnn/Qt/6.10.3/macos")
+endif()
+
 project(ModbusIndustrialHmi VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -14,7 +22,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # QtCreator supports the following variables for Android, which are identical to qmake Android variables.
 # Check http://doc.qt.io/qt-5/deployment-android.html for more information.
-# They need to be set before the find_package(Qt5 ...) call.
+# They need to be set before the find_package(Qt6 ...) call.
 
 #if(ANDROID)
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
@@ -25,7 +33,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #    endif()
 #endif()
 
-find_package(Qt5 REQUIRED COMPONENTS Widgets SerialBus SerialPort Sql)
+find_package(Qt6 REQUIRED COMPONENTS Widgets SerialBus SerialPort Sql)
 
 if(ANDROID)
   add_library(Modbus SHARED
@@ -135,9 +143,9 @@ else()
   )
 endif()
 
-target_link_libraries(Modbus PRIVATE 
-    Qt5::Widgets 
-    Qt5::SerialBus 
-    Qt5::SerialPort
-    Qt5::Sql
+target_link_libraries(Modbus PRIVATE
+    Qt6::Widgets
+    Qt6::SerialBus
+    Qt6::SerialPort
+    Qt6::Sql
 )

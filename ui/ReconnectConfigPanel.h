@@ -26,8 +26,8 @@ private:
     void setupUi();
 
 private:
-    QCheckBox *enabledCheck = nullptr;
-    QSpinBox *intervalSpin = nullptr;
+    QCheckBox *enabledCheckBox = nullptr;
+    QSpinBox *intervalSpinBox = nullptr;
     QPushButton *applyButton = nullptr;
     QPushButton *resetButton = nullptr;
 };

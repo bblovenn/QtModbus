@@ -22,7 +22,6 @@ public slots:
     void scheduleReconnect(const QString &deviceId);
     void stopReconnect();
     void setEnabled(bool enabled);
-    void setEnabled(bool enabled);
     void setReconnectIntervalMs(int intervalMs);
 
 signals:

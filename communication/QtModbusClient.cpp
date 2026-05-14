@@ -3,7 +3,7 @@
 #include <QtSerialBus/QModbusDataUnit>
 #include <QtSerialBus/QModbusDevice>
 #include <QtSerialBus/QModbusReply>
-#include <QtSerialBus/QModbusRtuSerialMaster>
+#include <QtSerialBus/QModbusRtuSerialClient>
 #include <QtSerialBus/QModbusTcpClient>
 #include <QtSerialPort/QSerialPort>
 
@@ -33,7 +33,7 @@ void QtModbusClient::createClient(const DeviceConfig &config)
         client_->setConnectionParameter(QModbusDevice::NetworkAddressParameter, config.tcp.host);
         client_->setConnectionParameter(QModbusDevice::NetworkPortParameter, config.tcp.port);
     } else {
-        client_ = new QModbusRtuSerialMaster(this);
+        client_ = new QModbusRtuSerialClient(this);
         client_->setConnectionParameter(QModbusDevice::SerialPortNameParameter, config.serial.portName);
         client_->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, config.serial.baudRate);
         client_->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::Data8);
