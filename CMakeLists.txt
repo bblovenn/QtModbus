@@ -76,6 +76,8 @@ if(ANDROID)
     ui/HistoryTrendPanel.cpp
     ui/SystemStatusPanel.h
     ui/SystemStatusPanel.cpp
+    ui/ReconnectConfigPanel.h
+    ui/ReconnectConfigPanel.cpp
     communication/IModbusClient.h
     communication/QtModbusClient.h
     communication/QtModbusClient.cpp
@@ -129,6 +131,8 @@ else()
     ui/HistoryTrendPanel.cpp
     ui/SystemStatusPanel.h
     ui/SystemStatusPanel.cpp
+    ui/ReconnectConfigPanel.h
+    ui/ReconnectConfigPanel.cpp
     communication/IModbusClient.h
     communication/QtModbusClient.h
     communication/QtModbusClient.cpp

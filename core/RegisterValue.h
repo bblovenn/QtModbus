@@ -29,6 +29,19 @@ struct RegisterReadResult
     QDateTime timestamp = QDateTime::currentDateTime(); //时间戳
 };
 
+struct RegisterWriteResult
+{
+    QString deviceId;
+    RegisterType type = RegisterType::HoldingRegister;
+    int address = 0;
+    quint16 value = 0;
+    int count = 0; //对于批量写入，表示写入的寄存器数量
+    QDateTime timestamp = QDateTime::currentDateTime();
+};
+
+//注册为Qt元类型，以便在信号和槽,多线程中使用这些结构体。
+Q_DECLARE_METATYPE(RegisterWriteResult)
+
 Q_DECLARE_METATYPE(RegisterReadResult)
 
 #endif // REGISTERVALUE_H

@@ -24,6 +24,7 @@
 #include "./ui/TrendPanel.h"
 #include "./ui/HistoryTrendPanel.h"
 #include "./ui/SystemStatusPanel.h"
+#include "./ui/ReconnectConfigPanel.h"
 
 #include <QDateTime>
 #include <QStatusBar>
@@ -36,6 +37,22 @@ namespace {
 QString zh(const char *text)
 {
     return QString::fromUtf8(text);
+}
+
+QString registerTypeText(RegisterType type)
+{
+    switch (type) {
+    case RegisterType::HoldingRegister:
+        return "保持寄存器";
+    case RegisterType::InputRegister:
+        return "输入寄存器";
+    case RegisterType::Coil:
+        return "线圈";
+    case RegisterType::DiscreteInput:
+        return "离散输入";
+    default:
+        return "未知类型";
+    }
 }
 
 } // namespace
@@ -76,6 +93,8 @@ void MainWindow::setupMainTabs()
     AlarmManager *alarmManager = new AlarmManager(this);
     DatabaseManager *databaseManager = new DatabaseManager(this);
     ReconnectController *reconnectController = new ReconnectController(this);
+
+    ReconnectConfigPanel *reconnectConfigPanel = new ReconnectConfigPanel(tabs);
 
     HistoryPanel *historyPanel = new HistoryPanel(databaseManager, tabs);
     AlarmHistoryPanel *alarmHistoryPanel = new AlarmHistoryPanel(databaseManager, tabs);
@@ -171,6 +190,7 @@ void MainWindow::setupMainTabs()
     tabs->addTab(monitorPanel, "实时监控");
     tabs->addTab(trendPanel, "实时曲线");
     tabs->addTab(pollingConfigPanel, "采集配置");
+    tabs->addTab(reconnectConfigPanel, "重连配置");
     tabs->addTab(alarmPanel, "报警记录");
     tabs->addTab(alarmConfigPanel, "报警配置");
     tabs->addTab(historyTabs, "历史查询");
@@ -252,17 +272,41 @@ void MainWindow::setupMainTabs()
             statusBar()->showMessage("通信错误：" + message);
     });
 
-    // 寄存器调试面板发起读写请求，Modbus 客户端返回结果后再刷新表格。
+    // 寄存器调试面板支持常用 Modbus 数据区读写；轮询仍单独使用保持寄存器读取。
     connect(registerPanel, &RegisterPanel::readHoldingRegistersRequested,
         modbusClient, &QtModbusClient::readHoldingRegisters
+    );
+
+    connect(registerPanel, &RegisterPanel::readInputRegistersRequested,
+        modbusClient, &QtModbusClient::readInputRegisters
+    );
+
+    connect(registerPanel, &RegisterPanel::readCoilsRequested,
+        modbusClient, &QtModbusClient::readCoils
+    );
+
+    connect(registerPanel, &RegisterPanel::readDiscreteInputsRequested,
+        modbusClient, &QtModbusClient::readDiscreteInputs
     );
 
     connect(registerPanel, &RegisterPanel::writeSingleHoldingRegisterRequested,
         modbusClient, &QtModbusClient::writeSingleHoldingRegister
     );
 
-    connect(modbusClient, &QtModbusClient::holdingRegistersRead,
-        registerPanel, &RegisterPanel::displayHoldingRegisters
+    connect(registerPanel, &RegisterPanel::writeSingleCoilRequested,
+        modbusClient, &QtModbusClient::writeSingleCoil
+    );
+
+    connect(registerPanel, &RegisterPanel::writeMultipleHoldingRegistersRequested,
+        modbusClient, &QtModbusClient::writeMultipleHoldingRegisters
+    );
+
+    connect(registerPanel, &RegisterPanel::writeMultipleCoilsRequested,
+        modbusClient, &QtModbusClient::writeMultipleCoils
+    );
+
+    connect(modbusClient, &QtModbusClient::registersRead,
+        registerPanel, &RegisterPanel::displayRegisters
     );
 
     // 连接成功后启动周期轮询；断开后停止轮询，避免继续发送读请求。
@@ -387,15 +431,47 @@ void MainWindow::setupMainTabs()
 
     connect(registerPanel, &RegisterPanel::readHoldingRegistersRequested,
         packetPanel, [appendPersistentLog](int startAddress, int count) {
-        appendPersistentLog(
-            "Modbus",
-            "TX",
-            QString("Read holding registers start=%1 count=%2")
-                .arg(startAddress)
-                .arg(count)
-        );
+            appendPersistentLog(
+                "Modbus",
+                "TX",
+                QString("Read holding registers start=%1 count=%2")
+                    .arg(startAddress)
+                    .arg(count)
+            );
     });
 
+    connect(registerPanel, &RegisterPanel::readInputRegistersRequested,
+        packetPanel, [appendPersistentLog](int startAddress, int count) {
+            appendPersistentLog(
+                "Modbus",
+                "TX",
+                QString("Read input registers start=%1 count=%2")
+                    .arg(startAddress)
+                    .arg(count)
+            );
+    });
+
+    connect(registerPanel, &RegisterPanel::readCoilsRequested,
+        packetPanel, [appendPersistentLog](int startAddress, int count) {
+            appendPersistentLog(
+                "Modbus",
+                "TX",
+                QString("Read coils start=%1 count=%2")
+                    .arg(startAddress)
+                    .arg(count)
+            );
+    });
+
+    connect(registerPanel, &RegisterPanel::readDiscreteInputsRequested,
+        packetPanel, [appendPersistentLog](int startAddress, int count) {
+            appendPersistentLog(
+                "Modbus",
+                "TX",
+                QString("Read discrete inputs start=%1 count=%2")
+                    .arg(startAddress)
+                    .arg(count)
+            );
+    });
 
     connect(registerPanel, &RegisterPanel::writeSingleHoldingRegisterRequested,
         packetPanel, [appendPersistentLog](int address, quint16 value) {
@@ -408,6 +484,39 @@ void MainWindow::setupMainTabs()
             );
     });
 
+    connect(registerPanel, &RegisterPanel::writeSingleCoilRequested,
+        packetPanel, [appendPersistentLog](int address, bool value) {
+            appendPersistentLog(
+                "Modbus",
+                "TX",
+                QString("Write single coil address=%1 value=%2")
+                    .arg(address)
+                    .arg(value ? "ON" : "OFF")
+            );
+    });
+
+    connect(registerPanel, &RegisterPanel::writeMultipleHoldingRegistersRequested,
+        packetPanel, [appendPersistentLog](int startAddress, const QVector<quint16> &values) {
+            appendPersistentLog(
+                "Modbus",
+                "TX",
+                QString("Write multiple holding registers start=%1 count=%2")
+                    .arg(startAddress)
+                    .arg(values.size())
+            );
+    });
+
+    connect(registerPanel, &RegisterPanel::writeMultipleCoilsRequested,
+        packetPanel, [appendPersistentLog](int startAddress, const QVector<bool> &values) {
+            appendPersistentLog(
+                "Modbus",
+                "TX",
+                QString("Write multiple coils start=%1 count=%2")
+                    .arg(startAddress)
+                    .arg(values.size())
+            );
+    }); 
+
     connect(modbusClient, &QtModbusClient::errorOccurred,
         packetPanel, [appendPersistentLog](const QString &message) {
             appendPersistentLog(
@@ -417,14 +526,28 @@ void MainWindow::setupMainTabs()
             );
     });
 
-    connect(modbusClient, &QtModbusClient::holdingRegistersRead,
+    connect(modbusClient, &QtModbusClient::registersRead,
         packetPanel, [appendPersistentLog](const RegisterReadResult &result) {
             appendPersistentLog(
                 "Modbus",
                 "RX",
-                QString("Holding registers read ok start=%1 count=%2")
+                QString("%1 read ok start=%2 count=%3")
+                    .arg(registerTypeText(result.type))
                     .arg(result.startAddress)
                     .arg(result.values.size())
+            );
+    });
+
+    connect(modbusClient, &QtModbusClient::registerWritten,
+        packetPanel, [appendPersistentLog](const RegisterWriteResult &result) {
+            appendPersistentLog(
+                "Modbus",
+                "RX",
+                QString("%1 write ok address=%2 count=%3 value=%4")
+                    .arg(registerTypeText(result.type))
+                    .arg(result.address)
+                    .arg(result.count)
+                    .arg(result.value)
             );
     });
 
@@ -437,6 +560,15 @@ void MainWindow::setupMainTabs()
             );
     });
 
+    connect(modbusClient, &QtModbusClient::registerWritten,
+        this, [this](const RegisterWriteResult &result) {
+            statusBar()->showMessage(
+                QString("%1 写入成功：地址=%2,值=%3")
+                    .arg(registerTypeText(result.type))
+                    .arg(result.address)
+                    .arg(result.value)
+            );
+    }); 
 
     connect(alarmConfigPanel, &AlarmConfigPanel::alarmLimitsChanged,
         alarmManager, &AlarmManager::setAlarmLimits
@@ -529,7 +661,39 @@ void MainWindow::setupMainTabs()
         systemStatusPanel, &SystemStatusPanel::setConnecting
     );
 
+    const bool savedReconnectEnabled =
+    settings.value("reconnect/enabled", reconnectController->isEnabled()).toBool();
+
+    // 重连间隔默认值为 3000 ms，如果配置文件中没有则使用控制器当前的设置。
+    const int savedReconnectIntervalMs =
+    settings.value("reconnect/intervalMs", reconnectController->reconnectIntervalMs()).toInt();
+
+    reconnectController->setEnabled(savedReconnectEnabled);
+    reconnectController->setReconnectIntervalMs(savedReconnectIntervalMs);
+
+    // 重连配置面板允许用户启用/禁用自动重连，并调整重连间隔，修改后立即生效并持久化。
+    reconnectConfigPanel->setInitialConfig(
+        savedReconnectEnabled,
+        savedReconnectIntervalMs
+    );
+
+    connect(reconnectConfigPanel, &ReconnectConfigPanel::reconnectConfigChanged,
+    this, [this, reconnectController](bool enabled, int intervalMs) {
+        reconnectController->setEnabled(enabled);
+        reconnectController->setReconnectIntervalMs(intervalMs);
+
+        QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
+        settings.setValue("reconnect/enabled", enabled);
+        settings.setValue("reconnect/intervalMs", intervalMs);
+
+        // 状态栏显示当前的重连配置状态，方便用户确认设置已生效。
+        statusBar()->showMessage(
+            QString("重连配置已保存：%1,间隔 %2 ms")
+                .arg(enabled ? "启用" : "禁用")
+                .arg(intervalMs)
+        );
+    });
+
     setCentralWidget(tabs);
 }
-
 
