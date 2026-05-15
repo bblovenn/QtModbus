@@ -6,6 +6,7 @@
 #include <QString>
 #include <QVector>
 
+// 项目内部统一使用的 Modbus 数据区类型。
 enum class RegisterType
 {
     HoldingRegister, //保持寄存器,存储可读写的数据
@@ -14,12 +15,14 @@ enum class RegisterType
     DiscreteInput //离散输入,只读单个位
 };
 
+// 单个寄存器/位地址的读取值，rawValue 保留原始协议值。
 struct RegisterValue
 {
     int address = 0; //寄存器地址
     quint16 rawValue = 0; //原始寄存器值
 };
 
+// 一次读操作的完整结果，用于 UI 展示、轮询转换和日志记录。
 struct RegisterReadResult
 {
     QString deviceId;
@@ -29,6 +32,7 @@ struct RegisterReadResult
     QDateTime timestamp = QDateTime::currentDateTime(); //时间戳
 };
 
+// 一次写操作的确认结果，支持单写和批量写。
 struct RegisterWriteResult
 {
     QString deviceId;

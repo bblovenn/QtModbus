@@ -278,6 +278,27 @@ QtModbus/
 ├── mainwindow.h
 ├── mainwindow.cpp
 ├── mainwindow.ui
+├── app/
+│   ├── AppSettings.h
+│   ├── AppSettings.cpp
+│   ├── DeviceCommandSignalBinder.h
+│   ├── DeviceCommandSignalBinder.cpp
+│   ├── MainWindowPanels.h
+│   ├── MainWindowRuntimeState.h
+│   ├── MainWindowSignalBinder.h
+│   ├── MainWindowSignalBinder.cpp
+│   ├── PacketLogSignalBinder.h
+│   ├── PacketLogSignalBinder.cpp
+│   ├── PacketLogService.h
+│   ├── PacketLogService.cpp
+│   ├── PollingAlarmSignalBinder.h
+│   ├── PollingAlarmSignalBinder.cpp
+│   ├── RegisterTypeText.h
+│   ├── RegisterTypeText.cpp
+│   ├── ReconnectSignalBinder.h
+│   ├── ReconnectSignalBinder.cpp
+│   ├── SystemStatusSignalBinder.h
+│   └── SystemStatusSignalBinder.cpp
 ├── core/
 │   ├── DeviceConfig.h
 │   ├── RegisterValue.h
@@ -442,6 +463,9 @@ IP: 127.0.0.1
 系统采用分层和信号槽解耦设计：
 
 ```text
+应用编排层
+  MainWindow / AppSettings / MainWindowPanels / MainWindowSignalBinder / DeviceCommandSignalBinder / PollingAlarmSignalBinder / PacketLogSignalBinder / ReconnectSignalBinder / SystemStatusSignalBinder
+
 UI 层
   ConnectionPanel / RegisterPanel / MonitorPanel / AlarmPanel / HistoryPanel
 
@@ -457,7 +481,11 @@ UI 层
 
 核心思路：
 
+- 应用编排层负责创建对象、加载持久化配置、组织页面和连接信号槽。
 - UI 层只表达用户操作和显示结果，不直接操作底层 Modbus 对象。
+- `AppSettings` 集中管理 `QSettings` 键名和默认值，避免配置读写散落在界面代码中。
+- `MainWindowSignalBinder` 作为总调度入口，按设备命令、轮询报警、报文日志、自动重连和状态总览拆分信号槽连接。
+- `PacketLogSignalBinder` 负责报文日志相关信号槽连接，`PacketLogService` 统一处理日志显示和数据库落库。
 - 通信层通过 `IModbusClient` 抽象，实际实现由 `QtModbusClient` 完成。
 - 周期采集通过 `PollingWorker` 发起读请求。
 - 报警判断由 `AlarmManager` 独立处理。

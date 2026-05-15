@@ -5,12 +5,14 @@
 #include <QMetaType>
 #include <QString>
 
+// 报警等级，用于决定 UI 提示强度和历史查询分类。
 enum class AlarmLevel{
     Info,
     Warning,
     Critical
 };
 
+// 报警类型，覆盖采集值越限、通信异常和 Modbus 异常等场景。
 enum class AlarmType{
     TemperatureHigh,
     VoltageLow,
@@ -19,6 +21,7 @@ enum class AlarmType{
     ModbusException
 };
 
+// 一条报警记录。实时报警面板和 SQLite 历史表共用这份数据结构。
 struct AlarmRecord
 {
     QString id;

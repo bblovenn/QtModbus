@@ -10,6 +10,7 @@
 class QPushButton;
 class QTableWidget;
 
+// 实时报警面板：显示当前报警并允许用户确认报警。
 class AlarmPanel : public QWidget
 {
     Q_OBJECT

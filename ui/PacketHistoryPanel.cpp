@@ -73,6 +73,7 @@ void PacketHistoryPanel::setupUi()
 
 void PacketHistoryPanel::queryHistory()
 {
+    // category 为空或 All 时查询全部类别；其他值由 DatabaseManager 做精确过滤。
     if (!databaseManager) {
         return;
     }
@@ -109,6 +110,7 @@ QString PacketHistoryPanel::csvEscape(const QString &value) const
 
 void PacketHistoryPanel::exportCsv()
 {
+    // 报文日志导出的是当前查询结果，适合和现场操作记录一起归档。
     if (currentLogs.isEmpty()) {
         QMessageBox::information(this, "Export CSV", "No packet logs to export.");
         return;

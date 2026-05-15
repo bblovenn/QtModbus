@@ -15,26 +15,31 @@ ConnectionPanel::ConnectionPanel(QWidget *parent) : QWidget(parent)
 
 void ConnectionPanel::setupUi()
 {
+    // —— 通信模式选择 ——
     modeCombo = new QComboBox(this);
     modeCombo->addItem("Modbus TCP", static_cast<int>(ModbusMode::Tcp));
     modeCombo->addItem("Modbus RTU", static_cast<int>(ModbusMode::Rtu));
 
+    // —— RTU 串口参数 ——
     serialPortCombo = new QComboBox(this);
     serialPortCombo->addItems({"COM1", "COM2", "COM3", "COM13"});
 
     baudRateCombo = new QComboBox(this);
     baudRateCombo->addItems({"9600", "19200", "38400", "57600", "115200"});
 
+    // —— TCP 网络参数 ——
     hostEdit = new QLineEdit("127.0.0.1", this);
 
     portSpin = new QSpinBox(this);
     portSpin->setRange(1, 65535);
     portSpin->setValue(5020);
 
+    // —— 从站地址 ——
     slaveIdSpin = new QSpinBox(this);
     slaveIdSpin->setRange(1, 247);
     slaveIdSpin->setValue(1);
 
+    // —— 操作按钮 ——
     connectButton = new QPushButton("连接", this);
     disconnectButton = new QPushButton("断开", this);
 
@@ -55,6 +60,7 @@ void ConnectionPanel::setupUi()
     mainLayout->addLayout(buttonLayout);
     mainLayout->addStretch();
 
+    // 点击按钮时采集当前界面参数，通过信号发送给通信层
     connect(connectButton, &QPushButton::clicked, this, [this]() {
         emit connectRequested(currentConfig());
     });

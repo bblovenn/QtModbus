@@ -20,6 +20,8 @@ RegisterPanel::RegisterPanel(QWidget *parent)
 
 void RegisterPanel::setupUi()
 {
+    // 页面只收集用户输入并发信号，具体 Modbus 请求由通信层处理。
+    // —— 读取参数：地址、数量、数据区类型 ——
     readStartAddressSpin = new QSpinBox(this);
     readStartAddressSpin->setRange(0, 65535);
     readStartAddressSpin->setValue(0);
@@ -86,7 +88,7 @@ void RegisterPanel::setupUi()
     mainLayout->addWidget(writeGroup);
     mainLayout->addWidget(resultTable);
 
-    // 批量写保持寄存器 -- 起始地址选择器
+    // —— 批量写保持寄存器 ——
     writeMultiRegisterStartSpin = new QSpinBox(this);
     writeMultiRegisterStartSpin->setRange(0, 65535);
     writeMultiRegisterStartSpin->setValue(20);
@@ -97,7 +99,7 @@ void RegisterPanel::setupUi()
 
     writeMultiRegisterButton = new QPushButton("写多个保持寄存器", this);
 
-    //线圈
+    // —— 批量写线圈 ——
     writeMultiCoilStartSpin = new QSpinBox(this);
     writeMultiCoilStartSpin->setRange(0, 65535);
     writeMultiCoilStartSpin->setValue(0);
@@ -134,6 +136,7 @@ void RegisterPanel::setupUi()
         const int startAddress = readStartAddressSpin->value();
         const int count = readCountSpin->value();
 
+        // 记录"待处理读取"参数，用于在 displayRegisters 中过滤掉轮询等非用户触发的读结果
         hasPendingRead = true;
         pendingReadType = type;
         pendingReadStartAddress = startAddress;
@@ -231,7 +234,7 @@ void RegisterPanel::displayHoldingRegisters(const RegisterReadResult &result)
 
 void RegisterPanel::displayRegisters(const RegisterReadResult &result)
 {
-    //校验匹配
+    // 过滤：只显示用户手动发起的读取结果，忽略轮询等自动读取
     if (!matchesPendingRead(result)) {
         return;
     }

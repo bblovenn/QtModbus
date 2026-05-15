@@ -8,6 +8,7 @@
 #include <QString>
 #include <QVector>
 
+// Modbus 通信抽象接口。UI 和业务层只依赖这个信号槽契约，不直接关心 Qt 的客户端实现。
 class IModbusClient : public QObject
 {
     Q_OBJECT
@@ -22,6 +23,7 @@ public:
     virtual ~IModbusClient() = default;
 
 public slots:
+    // 连接、读写、断开都以槽函数暴露，方便 UI 面板直接通过信号驱动通信层。
     virtual void connectDevice(const DeviceConfig &config) = 0;
     virtual void disconnectDevice() = 0;
     virtual void readHoldingRegisters(int startAddress, int count) = 0;
@@ -38,6 +40,7 @@ public slots:
     virtual void writeMultipleCoils(int startAddress, const QVector<bool> &values) = 0;
 
 signals:
+    // 通信层统一向外广播结果，调用方无需区分 TCP/RTU 或具体功能码实现。
     void connected();
     void disconnected();
     void errorOccurred(const QString &message);

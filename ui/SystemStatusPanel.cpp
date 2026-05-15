@@ -93,9 +93,10 @@ void SystemStatusPanel::setDatabaseReady(const QString &path)
     setLabelText(databaseLabel, "Database", path);
 }
 
-//更新状态面板
+// 收到新一轮轮询结果时，刷新状态总览中的实时数据和最后更新时间
 void SystemStatusPanel::updateEngineeringValue(const EngineeringValue &value)
 {
+    // 状态总览只展示最新一帧工程量，完整历史由历史查询页负责。
     setLabelText(lastUpdateLabel, "Last Update",
                  value.timestamp.toString("yyyy-MM-dd HH:mm:ss"));
 
@@ -114,5 +115,6 @@ void SystemStatusPanel::updateEngineeringValue(const EngineeringValue &value)
 
 void SystemStatusPanel::updateAlarm(const AlarmRecord &alarm)
 {
+    // 这里只保留最新报警摘要，报警列表和确认操作在报警面板中完成。
     setLabelText(alarmLabel, "Latest Alarm", alarm.message);
 }

@@ -89,6 +89,7 @@ void HistoryPanel::setupUi()
 
 void HistoryPanel::queryHistory()
 {
+    // 查询条件来自界面控件，SQL 拼装和数据转换集中在 DatabaseManager。
     if (!databaseManager) {
         return;
     }
@@ -104,6 +105,7 @@ void HistoryPanel::queryHistory()
 
 void HistoryPanel::displayValues(const QList<EngineeringValue> &values)
 {
+    // 逐行填充查询结果到表格
     table->setRowCount(0);
 
     for (const EngineeringValue &value : values) {
@@ -121,6 +123,7 @@ void HistoryPanel::displayValues(const QList<EngineeringValue> &values)
 
 void HistoryPanel::exportCsv()
 {
+    // 将 currentValues 缓存的结果直接写为 UTF-8 BOM 的 CSV，不重新查库
     if (currentValues.isEmpty()) {
         QMessageBox::information(this, text(u8"导出 CSV"), text(u8"没有数据可以导出。"));
         return;

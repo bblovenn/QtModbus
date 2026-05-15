@@ -6,6 +6,7 @@
 
 #include <QObject>
 
+// 报警管理器：根据工程量和通信状态生成报警，并抑制同一报警的重复触发。
 class AlarmManager : public QObject
 {
     Q_OBJECT
@@ -26,6 +27,7 @@ signals:
     void alarmRaised(const AlarmRecord &alarm);
 
 private:
+    // 创建报警记录时统一补齐 ID、时间、设备、等级和消息，方便后续持久化。
     AlarmRecord createAlarm(
         const QString &deviceId,
         AlarmType type,
@@ -36,6 +38,7 @@ private:
     ) const;
 
 private:
+    // Active 标志用于避免同一个越限条件在每次轮询时都重复产生报警。
     bool temperatureHighActive = false;
     bool voltageLowActive = false;
     bool deviceOfflineActive = false;

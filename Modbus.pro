@@ -7,6 +7,15 @@ TEMPLATE = app
 TARGET = Modbus
 
 SOURCES += \
+    app/AppSettings.cpp \
+    app/DeviceCommandSignalBinder.cpp \
+    app/MainWindowSignalBinder.cpp \
+    app/PacketLogSignalBinder.cpp \
+    app/PacketLogService.cpp \
+    app/PollingAlarmSignalBinder.cpp \
+    app/RegisterTypeText.cpp \
+    app/ReconnectSignalBinder.cpp \
+    app/SystemStatusSignalBinder.cpp \
     main.cpp \
     mainwindow.cpp \
     alarm/AlarmManager.cpp \
@@ -33,6 +42,17 @@ SOURCES += \
     ui/TrendPanel.cpp
 
 HEADERS += \
+    app/AppSettings.h \
+    app/DeviceCommandSignalBinder.h \
+    app/MainWindowPanels.h \
+    app/MainWindowRuntimeState.h \
+    app/MainWindowSignalBinder.h \
+    app/PacketLogSignalBinder.h \
+    app/PacketLogService.h \
+    app/PollingAlarmSignalBinder.h \
+    app/RegisterTypeText.h \
+    app/ReconnectSignalBinder.h \
+    app/SystemStatusSignalBinder.h \
     mainwindow.h \
     alarm/AlarmManager.h \
     communication/IModbusClient.h \

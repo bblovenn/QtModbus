@@ -15,9 +15,11 @@ ReconnectConfigPanel::ReconnectConfigPanel(QWidget *parent)
 
 void ReconnectConfigPanel::setupUi()
 {
+    // —— 自动重连开关 ——
     enabledCheckBox = new QCheckBox(tr("启用自动重连"), this);
     enabledCheckBox->setChecked(true);
 
+    // —— 重连间隔：1s ~ 60s ——
     intervalSpinBox = new QSpinBox(this);
     intervalSpinBox->setRange(1000, 60000);
     intervalSpinBox->setSingleStep(500);

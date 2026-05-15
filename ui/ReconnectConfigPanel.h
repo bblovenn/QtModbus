@@ -7,6 +7,7 @@ class QCheckBox;
 class QSpinBox;
 class QPushButton;
 
+// 重连配置面板：控制自动重连开关和重连间隔。
 class ReconnectConfigPanel : public QWidget
 {
     Q_OBJECT

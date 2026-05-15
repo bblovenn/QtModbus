@@ -7,6 +7,7 @@
 
 class QTimer;
 
+// 自动重连控制器：记录最近一次连接配置，在异常断开后按间隔重新发起连接请求。
 class ReconnectController : public QObject
 {
     Q_OBJECT

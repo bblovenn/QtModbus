@@ -6,6 +6,7 @@
 class QSpinBox;
 class QPushButton;
 
+// 采集配置面板：维护轮询周期、起始地址和读取数量。
 class PollingConfigPanel : public QWidget
 {
     Q_OBJECT

@@ -20,8 +20,10 @@ HistoryTrendPanel::HistoryTrendPanel(DatabaseManager *databaseManagerValue, QWid
 
 void HistoryTrendPanel::setupUi()
 {
+    // —— 查询条件 ——
     deviceIdEdit = new QLineEdit("device-001", this);
 
+    // 默认查询最近 1 小时
     beginTimeEdit = new QDateTimeEdit(QDateTime::currentDateTime().addSecs(-3600), this);
     beginTimeEdit->setDisplayFormat("yyyy-MM-dd HH:mm:ss");
     beginTimeEdit->setCalendarPopup(true);
@@ -30,8 +32,11 @@ void HistoryTrendPanel::setupUi()
     endTimeEdit->setDisplayFormat("yyyy-MM-dd HH:mm:ss");
     endTimeEdit->setCalendarPopup(true);
 
+    // —— 操作按钮 ——
     queryButton = new QPushButton("Query", this);
     clearButton = new QPushButton("Clear", this);
+
+    // —— 复用实时曲线组件，但隐藏暂停/清空按钮，由本面板自行管理 ——
     trendPanel = new TrendPanel(this);
     trendPanel->setControlPanelVisible(false);
 

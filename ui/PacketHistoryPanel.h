@@ -11,6 +11,7 @@ class QDateTimeEdit;
 class QPushButton;
 class QTableWidget;
 
+// 报文历史面板：查询数据库中的报文日志，并支持按类别/方向筛选。
 class PacketHistoryPanel : public QWidget
 {
     Q_OBJECT

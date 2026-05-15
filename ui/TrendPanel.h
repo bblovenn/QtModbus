@@ -12,6 +12,7 @@
 class QPainter;
 class QPushButton;
 
+// 实时曲线面板：绘制采集数据随时间变化的趋势。
 class TrendPanel : public QWidget
 {
     Q_OBJECT

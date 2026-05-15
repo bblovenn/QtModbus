@@ -59,6 +59,7 @@ void TrendPanel::togglePaused()
 
 void TrendPanel::paintEvent(QPaintEvent *event)
 {
+    // 趋势图直接在 QWidget 上绘制，避免引入额外图表库。
     QWidget::paintEvent(event);
 
     QPainter painter(this);

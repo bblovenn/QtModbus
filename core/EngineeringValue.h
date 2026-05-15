@@ -5,6 +5,7 @@
 #include <QMetaType>
 #include <QString>
 
+// 轮询保持寄存器后换算得到的工程量，是监控、趋势和报警判断的共同输入。
 struct EngineeringValue
 {
     QString deviceId;

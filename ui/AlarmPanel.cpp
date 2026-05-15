@@ -69,7 +69,7 @@ void AlarmPanel::appendAlarm(const AlarmRecord &alarm)
 
 void AlarmPanel::confirmSelectedAlarm()
 {
-    // 获取当前选中的行号
+    // 获取用户选中的报警行，通过 UserRole 取出报警 ID，更新界面确认状态并通知数据库
     const int row = table->currentRow();
 
     if (row < 0) {

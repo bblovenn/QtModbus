@@ -11,6 +11,7 @@ class QTableWidget;
 class QComboBox;
 class QLineEdit;
 
+// 寄存器调试面板：提供常用 Modbus 功能码读写入口，并显示读结果。
 class RegisterPanel : public QWidget
 {
     Q_OBJECT

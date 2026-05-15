@@ -1,58 +1,38 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include "./alarm/AlarmManager.h"
-#include "./communication/QtModbusClient.h"
-#include "./communication/ReconnectController.h"
-#include "./core/AlarmRecord.h"
-#include "./core/DeviceConfig.h"
-#include "./core/EngineeringValue.h"
-#include "./core/RegisterValue.h"
-#include "./database/DatabaseManager.h"
-#include "./polling/PollingWorker.h"
-#include "./ui/AlarmPanel.h"
-#include "./ui/ConnectionPanel.h"
-#include "./ui/HistoryPanel.h"
-#include "./ui/MonitorPanel.h"
-#include "./ui/PacketMonitorPanel.h"
-#include "./ui/RegisterPanel.h"
-#include "./ui/AlarmHistoryPanel.h"
-#include "./ui/AlarmConfigPanel.h"
-#include "./ui/PacketHistoryPanel.h"
-#include "./ui/DatabaseMaintenancePanel.h"
-#include "./ui/PollingConfigPanel.h"
-#include "./ui/TrendPanel.h"
-#include "./ui/HistoryTrendPanel.h"
-#include "./ui/SystemStatusPanel.h"
-#include "./ui/ReconnectConfigPanel.h"
+#include "app/MainWindowSignalBinder.h"
+#include "app/PacketLogService.h"
+#include "alarm/AlarmManager.h"
+#include "communication/QtModbusClient.h"
+#include "communication/ReconnectController.h"
+#include "database/DatabaseManager.h"
+#include "polling/PollingWorker.h"
+#include "ui/AlarmConfigPanel.h"
+#include "ui/AlarmHistoryPanel.h"
+#include "ui/AlarmPanel.h"
+#include "ui/ConnectionPanel.h"
+#include "ui/DatabaseMaintenancePanel.h"
+#include "ui/HistoryPanel.h"
+#include "ui/HistoryTrendPanel.h"
+#include "ui/MonitorPanel.h"
+#include "ui/PacketHistoryPanel.h"
+#include "ui/PacketMonitorPanel.h"
+#include "ui/PollingConfigPanel.h"
+#include "ui/ReconnectConfigPanel.h"
+#include "ui/RegisterPanel.h"
+#include "ui/SystemStatusPanel.h"
+#include "ui/TrendPanel.h"
 
-#include <QDateTime>
 #include <QStatusBar>
 #include <QString>
 #include <QTabWidget>
-#include <QSettings> //持久化配置存储类，用于保存和加载应用程序的设置
 
 namespace {
 
 QString zh(const char *text)
 {
     return QString::fromUtf8(text);
-}
-
-QString registerTypeText(RegisterType type)
-{
-    switch (type) {
-    case RegisterType::HoldingRegister:
-        return "保持寄存器";
-    case RegisterType::InputRegister:
-        return "输入寄存器";
-    case RegisterType::Coil:
-        return "线圈";
-    case RegisterType::DiscreteInput:
-        return "离散输入";
-    default:
-        return "未知类型";
-    }
 }
 
 } // namespace
@@ -77,623 +57,149 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupMainTabs()
 {
-    // 主标签页负责承载各个功能面板，所有面板统一挂到 tabs 下管理生命周期。
-    tabs = new QTabWidget(this);
-
-    ConnectionPanel *connectionPanel = new ConnectionPanel(tabs);
-    RegisterPanel *registerPanel = new RegisterPanel(tabs);
-    MonitorPanel *monitorPanel = new MonitorPanel(tabs);
-    AlarmPanel *alarmPanel = new AlarmPanel(tabs);
-    PacketMonitorPanel *packetPanel = new PacketMonitorPanel(tabs);
-    TrendPanel *trendPanel = new TrendPanel(tabs);
-    SystemStatusPanel *systemStatusPanel = new SystemStatusPanel(tabs);
-    // 核心业务对象由主窗口持有，随主窗口销毁自动释放。
-    QtModbusClient *modbusClient = new QtModbusClient(this);
-    PollingWorker *pollingWorker = new PollingWorker(this);
-    AlarmManager *alarmManager = new AlarmManager(this);
-    DatabaseManager *databaseManager = new DatabaseManager(this);
-    ReconnectController *reconnectController = new ReconnectController(this);
-
-    ReconnectConfigPanel *reconnectConfigPanel = new ReconnectConfigPanel(tabs);
-
-    HistoryPanel *historyPanel = new HistoryPanel(databaseManager, tabs);
-    AlarmHistoryPanel *alarmHistoryPanel = new AlarmHistoryPanel(databaseManager, tabs);
-
-    HistoryTrendPanel *historyTrendPanel = new HistoryTrendPanel(databaseManager, tabs);
-
-    PacketHistoryPanel *packetHistoryPanel = new PacketHistoryPanel(databaseManager, tabs);
-
-    DatabaseMaintenancePanel *databaseMaintenancePanel = new DatabaseMaintenancePanel(databaseManager, tabs);
-
-    //设计模式：这是一个观察者/发布-订阅模式的变体
-    //lambda 表达式（匿名函数），用于持久化记录通信报文日志
-    auto appendPersistentLog =
-    //捕获列表：捕获外部的两个变量，供 lambda 内部使用
-    [packetPanel, databaseManager](
-        const QString &category,
-        const QString &direction,
-        const QString &content
-    ) {
-        const QDateTime now = QDateTime::currentDateTime();
-
-        packetPanel->appendText(
-            QString("[%1] %2: %3")
-                .arg(now.toString("yyyy-MM-dd HH:mm:ss.zzz"))
-                .arg(direction)
-                .arg(content)
-        );
-
-        databaseManager->savePacketLog(
-            now,
-            category,
-            direction,
-            content
-        );
-    };
-
-    QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
-
-    DeviceConfig savedDeviceConfig;   
-    savedDeviceConfig.mode = static_cast<ModbusMode>(
-        settings.value("connection/mode", static_cast<int>(ModbusMode::Tcp)).toInt()
-    );
-
-    savedDeviceConfig.tcp.host = settings.value("connection/tcpHost", "127.0.0.1").toString();
-    savedDeviceConfig.tcp.port = settings.value("connection/tcpPort", 5020).toInt();
-    savedDeviceConfig.serial.portName = settings.value("connection/serialPort", "COM13").toString();
-    savedDeviceConfig.serial.baudRate = settings.value("connection/baudRate", 9600).toInt();
-    savedDeviceConfig.slaveId = settings.value("connection/slaveId", 1).toInt();
-
-    connectionPanel->setInitialConfig(savedDeviceConfig);
-
-    pollingIntervalMs = settings.value("polling/intervalMs", 1000).toInt();
-    pollingStartAddress = settings.value("polling/startAddress", 0).toInt();
-    pollingCount = settings.value("polling/count", 4).toInt();
-
-    // 轮询配置面板负责显示和修改轮询参数，修改后发出信号通知主窗口更新配置并持久化。
-    PollingConfigPanel *pollingConfigPanel = new PollingConfigPanel(tabs);
-    pollingConfigPanel->setInitialConfig(
-        pollingIntervalMs,
-        pollingStartAddress,
-        pollingCount
-    );
-
-    const double savedTemperatureHighLimit =
-        settings.value(
-            "界限/最高温度",
-            alarmManager->temperatureHighLimitValue()
-        ).toDouble();
-
-    const double savedVoltageLowLimit =
-        settings.value(
-            "界限/最低电压",
-            alarmManager->voltageLowLimitValue()
-        ).toDouble();
-
-    alarmManager->setAlarmLimits(savedTemperatureHighLimit, savedVoltageLowLimit);
-
-    AlarmConfigPanel *alarmConfigPanel = new AlarmConfigPanel(tabs);
-
-    alarmConfigPanel->setInitialLimits(
-        savedTemperatureHighLimit,
-        savedVoltageLowLimit
-    );
-
-    QTabWidget *historyTabs = new QTabWidget(tabs);
-    historyTabs->addTab(historyPanel, "采集数据日志");
-    historyTabs->addTab(historyTrendPanel, "历史曲线");
-    historyTabs->addTab(alarmHistoryPanel, "报警日志");
-    historyTabs->addTab(packetHistoryPanel, "报文日志");
-    tabs->addTab(connectionPanel, "设备连接");
-    tabs->addTab(systemStatusPanel, "状态总览");
-    tabs->addTab(registerPanel, "寄存器调试");
-    tabs->addTab(monitorPanel, "实时监控");
-    tabs->addTab(trendPanel, "实时曲线");
-    tabs->addTab(pollingConfigPanel, "采集配置");
-    tabs->addTab(reconnectConfigPanel, "重连配置");
-    tabs->addTab(alarmPanel, "报警记录");
-    tabs->addTab(alarmConfigPanel, "报警配置");
-    tabs->addTab(historyTabs, "历史查询");
-    tabs->addTab(databaseMaintenancePanel, "数据库维护");
-    tabs->addTab(packetPanel, "报文日志");
-
-    // 数据库只打开和初始化一次，采集数据与报警记录共用同一个数据库连接。
-    if (databaseManager->open("modbus_hmi.db") && databaseManager->initialize()) {
-        connect(pollingWorker, &PollingWorker::engineeringValueReady,
-            databaseManager, &DatabaseManager::saveEngineeringValue
-        );
-
-        connect(alarmManager, &AlarmManager::alarmRaised,
-            databaseManager, &DatabaseManager::saveAlarmRecord
-        );
-
-        connect(alarmPanel, &AlarmPanel::alarmConfirmed,
-            databaseManager, &DatabaseManager::confirmAlarm
-        );
-
-        databaseMaintenancePanel->refreshInfo();
-        systemStatusPanel->setDatabaseReady(databaseManager->databaseFilePath());
-    }
-
-    connect(databaseManager, &DatabaseManager::errorOccurred,
-        packetPanel, [packetPanel](const QString &message) {
-            packetPanel->appendText(
-                QString("[%1] DB: Error %2")
-                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss.zzz"))
-                    .arg(message)
-            );
-    });
-
-    // 连接面板只负责发出用户意图，真正的连接和断开由 Modbus 客户端执行。
-    connect(connectionPanel, &ConnectionPanel::connectRequested,
-        modbusClient, &QtModbusClient::connectDevice
-    );
-
-    connect(connectionPanel, &ConnectionPanel::disconnectRequested,
-        modbusClient, &QtModbusClient::disconnectDevice
-    );
-
-    connect(connectionPanel, &ConnectionPanel::connectRequested,
-        this, [this](const DeviceConfig &config) {
-            statusBar()->showMessage(
-                "请求连接：" + config.tcp.host + ":" + QString::number(config.tcp.port)
-            );
-    });
-
-    connect(connectionPanel, &ConnectionPanel::disconnectRequested,
-        this, [this]() {
-            statusBar()->showMessage("已断开");
-    });
-
-    connect(connectionPanel, &ConnectionPanel::connectRequested,
-    this, [](const DeviceConfig &config) {
-        QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
-
-        settings.setValue("connection/mode", static_cast<int>(config.mode));
-        settings.setValue("connection/tcpHost", config.tcp.host);
-        settings.setValue("connection/tcpPort", config.tcp.port);
-        settings.setValue("connection/serialPort", config.serial.portName);
-        settings.setValue("connection/baudRate", config.serial.baudRate);
-        settings.setValue("connection/slaveId", config.slaveId);
-    });
-
-    connect(modbusClient, &QtModbusClient::connected,
-        this, [this]() {
-            statusBar()->showMessage("已连接");
-    });
-
-    connect(modbusClient, &QtModbusClient::disconnected,
-        this, [this]() {
-            statusBar()->showMessage("已断开");
-    });
-
-    connect(modbusClient, &QtModbusClient::errorOccurred,
-        this, [this](const QString &message) {
-            statusBar()->showMessage("通信错误：" + message);
-    });
-
-    // 寄存器调试面板支持常用 Modbus 数据区读写；轮询仍单独使用保持寄存器读取。
-    connect(registerPanel, &RegisterPanel::readHoldingRegistersRequested,
-        modbusClient, &QtModbusClient::readHoldingRegisters
-    );
-
-    connect(registerPanel, &RegisterPanel::readInputRegistersRequested,
-        modbusClient, &QtModbusClient::readInputRegisters
-    );
-
-    connect(registerPanel, &RegisterPanel::readCoilsRequested,
-        modbusClient, &QtModbusClient::readCoils
-    );
-
-    connect(registerPanel, &RegisterPanel::readDiscreteInputsRequested,
-        modbusClient, &QtModbusClient::readDiscreteInputs
-    );
-
-    connect(registerPanel, &RegisterPanel::writeSingleHoldingRegisterRequested,
-        modbusClient, &QtModbusClient::writeSingleHoldingRegister
-    );
-
-    connect(registerPanel, &RegisterPanel::writeSingleCoilRequested,
-        modbusClient, &QtModbusClient::writeSingleCoil
-    );
-
-    connect(registerPanel, &RegisterPanel::writeMultipleHoldingRegistersRequested,
-        modbusClient, &QtModbusClient::writeMultipleHoldingRegisters
-    );
-
-    connect(registerPanel, &RegisterPanel::writeMultipleCoilsRequested,
-        modbusClient, &QtModbusClient::writeMultipleCoils
-    );
-
-    connect(modbusClient, &QtModbusClient::registersRead,
-        registerPanel, &RegisterPanel::displayRegisters
-    );
-
-    // 连接成功后启动周期轮询；断开后停止轮询，避免继续发送读请求。
-    connect(modbusClient, &QtModbusClient::connected,
-        this, [this, pollingWorker]() {
-            modbusConnected = true;
-            pollingWorker->start(
-                pollingIntervalMs,
-                pollingStartAddress,
-                pollingCount
-            );
-    });
-
-    connect(modbusClient, &QtModbusClient::disconnected,
-    this, [this, pollingWorker]() {
-        modbusConnected = false;
-        pollingWorker->stop();
-    });
-
-    connect(pollingWorker, &PollingWorker::readRequested,
-        modbusClient, &QtModbusClient::readHoldingRegisters
-    );
-
-    connect(modbusClient, &QtModbusClient::holdingRegistersRead,
-        pollingWorker, &PollingWorker::onRegistersRead
-    );
-
-    connect(modbusClient, &QtModbusClient::errorOccurred,
-        pollingWorker, &PollingWorker::onError
-    );
-
-    // 轮询配置更改后，立即应用新配置并持久化到磁盘，重启轮询以应用新参数。
-    connect(pollingConfigPanel, &PollingConfigPanel::pollingConfigChanged,
-    this, [this, pollingWorker](int intervalMs, int startAddress, int count) {
-        pollingIntervalMs = intervalMs;
-        pollingStartAddress = startAddress;
-        pollingCount = count;
-
-        QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
-        settings.setValue("polling/intervalMs", pollingIntervalMs);
-        settings.setValue("polling/startAddress", pollingStartAddress);
-        settings.setValue("polling/count", pollingCount);
-
-        if (modbusConnected) {
-            pollingWorker->start(
-                pollingIntervalMs,
-                pollingStartAddress,
-                pollingCount
-            );
-        }
-
-        statusBar()->showMessage(
-            QString("Polling config saved: interval=%1 ms, start=%2, count=%3")
-                .arg(pollingIntervalMs)
-                .arg(pollingStartAddress)
-                .arg(pollingCount)
-        );
-    });
-
-    // 轮询结果先更新实时监控，再交给报警管理器判断是否越限。
-    connect(pollingWorker, &PollingWorker::engineeringValueReady,
-        monitorPanel, &MonitorPanel::updateValue);
-
-    connect(pollingWorker, &PollingWorker::engineeringValueReady,
-        alarmManager, &AlarmManager::checkValue);
-
-    connect(pollingWorker, &PollingWorker::engineeringValueReady,
-        this, [this](const EngineeringValue &value) {
-            statusBar()->showMessage(
-                QString("温度=%1 ℃  电压=%2 V  电流=%3 A  转速=%4 rpm")
-                    .arg(value.temperature)
-                    .arg(value.voltage)
-                    .arg(value.current)
-                    .arg(value.speed)
-            );
-    });
-
-    // 轮询连续失败或远端异常断开时，统一交给报警管理器生成离线报警。
-    connect(pollingWorker, &PollingWorker::deviceOffline,
-        alarmManager, &AlarmManager::onDeviceOffline
-    );
-
-    connect(modbusClient, &QtModbusClient::unexpectedDisconnected,
-        alarmManager, &AlarmManager::onDeviceOfflineForDevice
-    );
-
-    connect(pollingWorker, &PollingWorker::deviceOffline,
-        this, [this]() {
-            statusBar()->showMessage("设备连续通信失败，判定离线");
-    });
-
-    connect(alarmManager, &AlarmManager::alarmRaised,
-        alarmPanel, &AlarmPanel::appendAlarm
-    );
-
-    connect(alarmManager, &AlarmManager::alarmRaised,
-        this, [this](const AlarmRecord &alarm) {
-            statusBar()->showMessage("报警：" + alarm.message);
-    });
-
-    // 报文日志用于观察用户操作、通信结果、报警和数据库错误。
-    connect(connectionPanel, &ConnectionPanel::connectRequested,
-    packetPanel, [appendPersistentLog](const DeviceConfig &config) {
-        appendPersistentLog(
-            "Connection",
-            "TX",
-            QString("Connect request %1:%2 slave=%3")
-                .arg(config.tcp.host)
-                .arg(config.tcp.port)
-                .arg(config.slaveId)
-        );
-    });
-
-    connect(connectionPanel, &ConnectionPanel::disconnectRequested,
-    packetPanel, [appendPersistentLog]() {
-        appendPersistentLog(
-            "Connection",
-            "TX",
-            "Disconnect request"
-        );
-    });
-
-    connect(registerPanel, &RegisterPanel::readHoldingRegistersRequested,
-        packetPanel, [appendPersistentLog](int startAddress, int count) {
-            appendPersistentLog(
-                "Modbus",
-                "TX",
-                QString("Read holding registers start=%1 count=%2")
-                    .arg(startAddress)
-                    .arg(count)
-            );
-    });
-
-    connect(registerPanel, &RegisterPanel::readInputRegistersRequested,
-        packetPanel, [appendPersistentLog](int startAddress, int count) {
-            appendPersistentLog(
-                "Modbus",
-                "TX",
-                QString("Read input registers start=%1 count=%2")
-                    .arg(startAddress)
-                    .arg(count)
-            );
-    });
-
-    connect(registerPanel, &RegisterPanel::readCoilsRequested,
-        packetPanel, [appendPersistentLog](int startAddress, int count) {
-            appendPersistentLog(
-                "Modbus",
-                "TX",
-                QString("Read coils start=%1 count=%2")
-                    .arg(startAddress)
-                    .arg(count)
-            );
-    });
-
-    connect(registerPanel, &RegisterPanel::readDiscreteInputsRequested,
-        packetPanel, [appendPersistentLog](int startAddress, int count) {
-            appendPersistentLog(
-                "Modbus",
-                "TX",
-                QString("Read discrete inputs start=%1 count=%2")
-                    .arg(startAddress)
-                    .arg(count)
-            );
-    });
-
-    connect(registerPanel, &RegisterPanel::writeSingleHoldingRegisterRequested,
-        packetPanel, [appendPersistentLog](int address, quint16 value) {
-            appendPersistentLog(
-                "Modbus",
-                "TX",
-                QString("Write single holding register address=%1 value=%2")
-                    .arg(address)
-                    .arg(value)
-            );
-    });
-
-    connect(registerPanel, &RegisterPanel::writeSingleCoilRequested,
-        packetPanel, [appendPersistentLog](int address, bool value) {
-            appendPersistentLog(
-                "Modbus",
-                "TX",
-                QString("Write single coil address=%1 value=%2")
-                    .arg(address)
-                    .arg(value ? "ON" : "OFF")
-            );
-    });
-
-    connect(registerPanel, &RegisterPanel::writeMultipleHoldingRegistersRequested,
-        packetPanel, [appendPersistentLog](int startAddress, const QVector<quint16> &values) {
-            appendPersistentLog(
-                "Modbus",
-                "TX",
-                QString("Write multiple holding registers start=%1 count=%2")
-                    .arg(startAddress)
-                    .arg(values.size())
-            );
-    });
-
-    connect(registerPanel, &RegisterPanel::writeMultipleCoilsRequested,
-        packetPanel, [appendPersistentLog](int startAddress, const QVector<bool> &values) {
-            appendPersistentLog(
-                "Modbus",
-                "TX",
-                QString("Write multiple coils start=%1 count=%2")
-                    .arg(startAddress)
-                    .arg(values.size())
-            );
-    }); 
-
-    connect(modbusClient, &QtModbusClient::errorOccurred,
-        packetPanel, [appendPersistentLog](const QString &message) {
-            appendPersistentLog(
-                "Communication",
-                "RX",
-                "Error " + message
-            );
-    });
-
-    connect(modbusClient, &QtModbusClient::registersRead,
-        packetPanel, [appendPersistentLog](const RegisterReadResult &result) {
-            appendPersistentLog(
-                "Modbus",
-                "RX",
-                QString("%1 read ok start=%2 count=%3")
-                    .arg(registerTypeText(result.type))
-                    .arg(result.startAddress)
-                    .arg(result.values.size())
-            );
-    });
-
-    connect(modbusClient, &QtModbusClient::registerWritten,
-        packetPanel, [appendPersistentLog](const RegisterWriteResult &result) {
-            appendPersistentLog(
-                "Modbus",
-                "RX",
-                QString("%1 write ok address=%2 count=%3 value=%4")
-                    .arg(registerTypeText(result.type))
-                    .arg(result.address)
-                    .arg(result.count)
-                    .arg(result.value)
-            );
-    });
-
-    connect(alarmManager, &AlarmManager::alarmRaised,
-        packetPanel, [appendPersistentLog](const AlarmRecord &alarm) {
-            appendPersistentLog(
-                "Alarm",
-                "ALARM",
-                alarm.message
-            );
-    });
-
-    connect(modbusClient, &QtModbusClient::registerWritten,
-        this, [this](const RegisterWriteResult &result) {
-            statusBar()->showMessage(
-                QString("%1 写入成功：地址=%2,值=%3")
-                    .arg(registerTypeText(result.type))
-                    .arg(result.address)
-                    .arg(result.value)
-            );
-    }); 
-
-    connect(alarmConfigPanel, &AlarmConfigPanel::alarmLimitsChanged,
-        alarmManager, &AlarmManager::setAlarmLimits
-    );
-
-    connect(alarmConfigPanel, &AlarmConfigPanel::alarmLimitsChanged,
-    this, [this](double temperatureHighLimit, double voltageLowLimit) {
-        QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
-        settings.setValue("界限/最高温度", temperatureHighLimit);
-        settings.setValue("界限/最低电压", voltageLowLimit);
-
-        statusBar()->showMessage(
-            QString("界限更改为: 温度 > %1, 电压 < %2")
-                .arg(temperatureHighLimit)
-                .arg(voltageLowLimit)
-        );
-    });
-
-    connect(pollingWorker, &PollingWorker::engineeringValueReady,
-        trendPanel, &TrendPanel::appendValue
-    );
-
-    connect(connectionPanel, &ConnectionPanel::connectRequested,
-        systemStatusPanel, &SystemStatusPanel::setConnecting
-    );
-
-    connect(connectionPanel, &ConnectionPanel::disconnectRequested,
-        systemStatusPanel, &SystemStatusPanel::setDisconnected
-    );
-
-    connect(modbusClient, &QtModbusClient::connected,
-        systemStatusPanel, &SystemStatusPanel::setConnected
-    );
-
-    connect(modbusClient, &QtModbusClient::disconnected,
-        systemStatusPanel, &SystemStatusPanel::setDisconnected
-    );
-
-    connect(modbusClient, &QtModbusClient::errorOccurred,
-        systemStatusPanel, &SystemStatusPanel::setCommunicationError
-    );
-
-    connect(pollingWorker, &PollingWorker::pollingStarted,
-        systemStatusPanel, &SystemStatusPanel::setPollingStarted
-    );
-
-    connect(pollingWorker, &PollingWorker::pollingStopped,
-        systemStatusPanel, &SystemStatusPanel::setPollingStopped
-    );
-
-    connect(pollingWorker, &PollingWorker::engineeringValueReady,
-        systemStatusPanel, &SystemStatusPanel::updateEngineeringValue
-    );
-
-    connect(alarmManager, &AlarmManager::alarmRaised,
-        systemStatusPanel, &SystemStatusPanel::updateAlarm
-    );
-
-    connect(connectionPanel, &ConnectionPanel::connectRequested,
-        reconnectController, &ReconnectController::rememberConfig
-    );
-
-    connect(connectionPanel, &ConnectionPanel::disconnectRequested,
-        reconnectController, &ReconnectController::stopReconnect
-    );
-
-    connect(modbusClient, &QtModbusClient::connected,
-        reconnectController, &ReconnectController::stopReconnect
-    );
-
-    connect(modbusClient, &QtModbusClient::unexpectedDisconnected,
-        reconnectController, &ReconnectController::scheduleReconnect
-    );
-
-    connect(reconnectController, &ReconnectController::reconnectRequested,
-        modbusClient, &QtModbusClient::connectDevice
-    );
-
-    connect(reconnectController, &ReconnectController::reconnectMessage,
-    this, [this](const QString &message) {
-        statusBar()->showMessage(message);
-    });
-
-    connect(reconnectController, &ReconnectController::reconnectMessage,
-        packetPanel, [appendPersistentLog](const QString &message) {
-            appendPersistentLog("Connection", "AUTO", message);
-    });
-
-    connect(reconnectController, &ReconnectController::reconnectRequested,
-        systemStatusPanel, &SystemStatusPanel::setConnecting
-    );
-
-    const bool savedReconnectEnabled =
-    settings.value("reconnect/enabled", reconnectController->isEnabled()).toBool();
-
-    // 重连间隔默认值为 3000 ms，如果配置文件中没有则使用控制器当前的设置。
-    const int savedReconnectIntervalMs =
-    settings.value("reconnect/intervalMs", reconnectController->reconnectIntervalMs()).toInt();
-
-    reconnectController->setEnabled(savedReconnectEnabled);
-    reconnectController->setReconnectIntervalMs(savedReconnectIntervalMs);
-
-    // 重连配置面板允许用户启用/禁用自动重连，并调整重连间隔，修改后立即生效并持久化。
-    reconnectConfigPanel->setInitialConfig(
-        savedReconnectEnabled,
-        savedReconnectIntervalMs
-    );
-
-    connect(reconnectConfigPanel, &ReconnectConfigPanel::reconnectConfigChanged,
-    this, [this, reconnectController](bool enabled, int intervalMs) {
-        reconnectController->setEnabled(enabled);
-        reconnectController->setReconnectIntervalMs(intervalMs);
-
-        QSettings settings("QtModbusHmi", "ModbusIndustrialHmi");
-        settings.setValue("reconnect/enabled", enabled);
-        settings.setValue("reconnect/intervalMs", intervalMs);
-
-        // 状态栏显示当前的重连配置状态，方便用户确认设置已生效。
-        statusBar()->showMessage(
-            QString("重连配置已保存：%1,间隔 %2 ms")
-                .arg(enabled ? "启用" : "禁用")
-                .arg(intervalMs)
-        );
-    });
-
-    setCentralWidget(tabs);
+    // 初始化顺序：历史类面板依赖 databaseManager，信号绑定依赖所有面板和服务都已创建。
+    createServices();
+    createPanels();
+    loadInitialSettings();
+    addTabs();
+    initializeDatabase();
+    connectSignals();
+
+    setCentralWidget(panels.mainTabs);
 }
 
+void MainWindow::createServices()
+{
+    // 业务对象由主窗口持有，随主窗口生命周期一起释放。
+    modbusClient = new QtModbusClient(this);
+    pollingWorker = new PollingWorker(this);
+    alarmManager = new AlarmManager(this);
+    databaseManager = new DatabaseManager(this);
+    reconnectController = new ReconnectController(this);
+}
+
+void MainWindow::createPanels()
+{
+    // 面板对象统一挂到 mainTabs 下，由 Qt parent-child 机制负责释放。
+    panels.mainTabs = new QTabWidget(this);
+
+    panels.connection = new ConnectionPanel(panels.mainTabs);
+    panels.registers = new RegisterPanel(panels.mainTabs);
+    panels.monitor = new MonitorPanel(panels.mainTabs);
+    panels.alarms = new AlarmPanel(panels.mainTabs);
+    panels.packets = new PacketMonitorPanel(panels.mainTabs); // 实时报文监控面板
+    panels.trend = new TrendPanel(panels.mainTabs); // 实时曲线面板
+    panels.systemStatus = new SystemStatusPanel(panels.mainTabs);
+    panels.reconnectConfig = new ReconnectConfigPanel(panels.mainTabs);
+    panels.history = new HistoryPanel(databaseManager, panels.mainTabs);
+    panels.alarmHistory = new AlarmHistoryPanel(databaseManager, panels.mainTabs);
+    panels.historyTrend = new HistoryTrendPanel(databaseManager, panels.mainTabs);
+    panels.packetHistory = new PacketHistoryPanel(databaseManager, panels.mainTabs);
+    panels.databaseMaintenance = new DatabaseMaintenancePanel(databaseManager, panels.mainTabs);
+    panels.pollingConfig = new PollingConfigPanel(panels.mainTabs); // 轮询配置面板
+    panels.alarmConfig = new AlarmConfigPanel(panels.mainTabs);
+
+    panels.historyTabs = new QTabWidget(panels.mainTabs); // 历史查询的二级标签页
+    packetLogService = std::make_unique<PacketLogService>(panels.packets, databaseManager); // 创建报文日志服务，传入实时报文监控面板和数据库管理器的指针
+}
+
+void MainWindow::loadInitialSettings()
+{
+    // 启动时恢复用户上次保存的连接、轮询、报警和重连配置。
+    panels.connection->setInitialConfig(appSettings.loadDeviceConfig());
+
+    const PollingConfig pollingConfig = appSettings.loadPollingConfig();
+    runtimeState.pollingIntervalMs = pollingConfig.intervalMs;
+    runtimeState.pollingStartAddress = pollingConfig.startAddress;
+    runtimeState.pollingCount = pollingConfig.count;
+    panels.pollingConfig->setInitialConfig(
+        runtimeState.pollingIntervalMs,
+        runtimeState.pollingStartAddress,
+        runtimeState.pollingCount
+    );
+
+    const AlarmLimits alarmLimits = appSettings.loadAlarmLimits(
+        alarmManager->temperatureHighLimitValue(),
+        alarmManager->voltageLowLimitValue()
+    );
+    alarmManager->setAlarmLimits(
+        alarmLimits.temperatureHighLimit,
+        alarmLimits.voltageLowLimit
+    );
+    panels.alarmConfig->setInitialLimits(
+        alarmLimits.temperatureHighLimit,
+        alarmLimits.voltageLowLimit
+    );
+
+    const ReconnectConfig reconnectConfig = appSettings.loadReconnectConfig(
+        reconnectController->isEnabled(),
+        reconnectController->reconnectIntervalMs()
+    );
+    reconnectController->setEnabled(reconnectConfig.enabled);
+    reconnectController->setReconnectIntervalMs(reconnectConfig.intervalMs);
+    panels.reconnectConfig->setInitialConfig(
+        reconnectConfig.enabled,
+        reconnectConfig.intervalMs
+    );
+}
+
+void MainWindow::addTabs()
+{
+    panels.historyTabs->addTab(panels.history, "采集数据日志");
+    panels.historyTabs->addTab(panels.historyTrend, "历史曲线");
+    panels.historyTabs->addTab(panels.alarmHistory, "报警日志");
+    panels.historyTabs->addTab(panels.packetHistory, "报文日志");
+
+    panels.mainTabs->addTab(panels.connection, "设备连接");
+    panels.mainTabs->addTab(panels.systemStatus, "状态总览");
+    panels.mainTabs->addTab(panels.registers, "寄存器调试");
+    panels.mainTabs->addTab(panels.monitor, "实时监控");
+    panels.mainTabs->addTab(panels.trend, "实时曲线");
+    panels.mainTabs->addTab(panels.pollingConfig, "采集配置");
+    panels.mainTabs->addTab(panels.reconnectConfig, "重连配置");
+    panels.mainTabs->addTab(panels.alarms, "报警记录");
+    panels.mainTabs->addTab(panels.alarmConfig, "报警配置");
+    panels.mainTabs->addTab(panels.historyTabs, "历史查询");
+    panels.mainTabs->addTab(panels.databaseMaintenance, "数据库维护");
+    panels.mainTabs->addTab(panels.packets, "报文日志");
+}
+
+void MainWindow::initializeDatabase()
+{
+    // 数据库初始化失败时只禁用持久化能力，界面和通信调试仍可继续使用。
+    if (!databaseManager->open("modbus_hmi.db") || !databaseManager->initialize()) {
+        return;
+    }
+
+    connect(pollingWorker, &PollingWorker::engineeringValueReady,
+        databaseManager, &DatabaseManager::saveEngineeringValue
+    );
+
+    connect(alarmManager, &AlarmManager::alarmRaised,
+        databaseManager, &DatabaseManager::saveAlarmRecord
+    );
+
+    connect(panels.alarms, &AlarmPanel::alarmConfirmed,
+        databaseManager, &DatabaseManager::confirmAlarm
+    );
+
+    panels.databaseMaintenance->refreshInfo();
+    panels.systemStatus->setDatabaseReady(databaseManager->databaseFilePath());
+}
+
+void MainWindow::connectSignals()
+{
+    // 所有跨模块信号槽集中交给 Binder，MainWindow 保持为装配入口。
+    MainWindowSignalBinder::bind({
+        this,
+        &appSettings,
+        &panels,
+        &runtimeState,
+        packetLogService.get(),
+        modbusClient,
+        pollingWorker,
+        alarmManager,
+        databaseManager,
+        reconnectController
+    });
+}

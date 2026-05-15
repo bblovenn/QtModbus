@@ -13,12 +13,14 @@ AlarmConfigPanel::AlarmConfigPanel(QWidget *parent)
 
 void AlarmConfigPanel::setupUi()
 {
+    // —— 温度上限阈值 ——
     temperatureHighSpin = new QDoubleSpinBox(this);
     temperatureHighSpin->setRange(-1000.0, 1000.0);
     temperatureHighSpin->setDecimals(1);
     temperatureHighSpin->setSingleStep(1.0);
     temperatureHighSpin->setSuffix(" C");
 
+    // —— 电压下限阈值 ——
     voltageLowSpin = new QDoubleSpinBox(this);
     voltageLowSpin->setRange(0.0, 1000.0);
     voltageLowSpin->setDecimals(2);
@@ -54,8 +56,7 @@ void AlarmConfigPanel::setInitialLimits(double temperatureHighLimit, double volt
 
 void AlarmConfigPanel::applyLimits()
 {
-    // 验证输入等操作...
-    // 发射信号通知外部
+    // 将当前界面阈值通过信号发出，由 Binder 层负责同步到 AlarmManager 并持久化
     emit alarmLimitsChanged(
         temperatureHighSpin->value(),
         voltageLowSpin->value()

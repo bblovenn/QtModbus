@@ -6,6 +6,7 @@
 class QDoubleSpinBox;
 class QPushButton;
 
+// 报警配置面板：维护温度上限、电压下限等报警阈值。
 class AlarmConfigPanel : public QWidget
 {
     Q_OBJECT

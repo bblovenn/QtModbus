@@ -21,7 +21,7 @@ QtModbusClient::~QtModbusClient()
 
 void QtModbusClient::createClient(const DeviceConfig &config)
 {
-    //释放旧的客户端实例
+    // 每次连接前重建客户端，保证 TCP/RTU 模式切换时底层参数不会残留。
     if (client_) {
         client_->disconnectDevice();
         client_->deleteLater();
@@ -51,6 +51,7 @@ void QtModbusClient::createClient(const DeviceConfig &config)
             manualDisconnect_ = false;
             emit connected();
         } else if (state == QModbusDevice::UnconnectedState) {
+            // 只有非用户主动断开才视为异常断开，避免手动断开触发自动重连。
             const bool unexpected = wasConnected_ && !manualDisconnect_;
             wasConnected_ = false;
             emit disconnected();
@@ -69,6 +70,7 @@ void QtModbusClient::createClient(const DeviceConfig &config)
 
 void QtModbusClient::connectDevice(const DeviceConfig &config)
 {
+    // 保存配置，后续读写请求需要从站 ID，异常断开信号也需要设备 ID。
     config_ = config;
     manualDisconnect_ = false;
     wasConnected_ = false;
@@ -85,7 +87,7 @@ void QtModbusClient::disconnectDevice()
         return;
     }
 
-    manualDisconnect_ = true;
+    manualDisconnect_ = true; // 标记为用户主动断开，供 stateChanged 判断是否需要重连。
     client_->disconnectDevice();
 }
 
@@ -167,6 +169,7 @@ void QtModbusClient::readDataUnit(RegisterType type,
                                   int startAddress,
                                   int count)
 {
+    // 所有读请求走同一个函数，避免 01/02/03/04 功能码结果解析逻辑重复。
     if (!client_ || client_->state() != QModbusDevice::ConnectedState) {
         emit errorOccurred("设备未连接");
         return;
@@ -259,6 +262,7 @@ void QtModbusClient::writeSingleCoil(int address, bool value)
 
 void QtModbusClient::writeMultipleHoldingRegisters(int startAddress, const QVector<quint16> &values)
 {
+    // 批量写入必须至少有一个值，否则 Qt 会构造出无效请求。
     if (!client_ || client_->state() != QModbusDevice::ConnectedState) {
         emit errorOccurred("设备未连接");
         return;
@@ -308,6 +312,7 @@ void QtModbusClient::writeMultipleHoldingRegisters(int startAddress, const QVect
 
 void QtModbusClient::writeMultipleCoils(int startAddress, const QVector<bool> &values)
 {
+    // 线圈批量写入和保持寄存器类似，只是值域从 quint16 变为 bool。
     if (!client_ || client_->state() != QModbusDevice::ConnectedState) {
         emit errorOccurred("设备未连接");
         return;

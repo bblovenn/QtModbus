@@ -8,6 +8,7 @@
 
 class QLabel;
 
+// 状态总览面板：汇总连接、采集、数据库和最新报警状态。
 class SystemStatusPanel : public QWidget
 {
     Q_OBJECT

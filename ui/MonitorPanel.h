@@ -9,6 +9,7 @@ class QLabel;
 class QPushButton;
 class QTableWidget;
 
+// 实时监控面板：展示最新工程量及最小值、最大值、平均值等统计信息。
 class MonitorPanel : public QWidget
 {
     Q_OBJECT

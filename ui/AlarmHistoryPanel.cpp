@@ -100,6 +100,7 @@ void AlarmHistoryPanel::setupUi()
 
 void AlarmHistoryPanel::queryHistory()
 {
+    // confirmedFilter: 全部/未确认/已确认，由下拉框映射为 -1/0/1。
     if (!databaseManager) {
         return;
     }
@@ -177,6 +178,7 @@ QString AlarmHistoryPanel::alarmLevelText(AlarmLevel level) const
 
 void AlarmHistoryPanel::exportCsv()
 {
+    // CSV 导出当前表格对应的数据，便于现场排查后留档。
     if (currentRecords.isEmpty()) {
         QMessageBox::information(this, text(u8"导出 CSV"), text(u8"没有报警记录可以导出。"));
         return;

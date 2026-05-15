@@ -8,6 +8,7 @@
 
 class QModbusClient;
 
+// 基于 Qt SerialBus 的真实通信实现，负责把项目内部请求映射为 Qt Modbus 请求。
 class QtModbusClient : public IModbusClient
 {
     Q_OBJECT
@@ -44,6 +45,7 @@ private:
                     );
 
 private:
+    // 当前连接配置会保留给读写请求和异常断开通知使用。
     DeviceConfig config_;
     QModbusClient *client_ = nullptr;
     bool manualDisconnect_ = false;

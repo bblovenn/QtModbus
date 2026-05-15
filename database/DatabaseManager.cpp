@@ -38,6 +38,7 @@ bool DatabaseManager::open(const QString &databasePath)
 
 bool DatabaseManager::initialize()
 {
+    // 初始化采用 IF NOT EXISTS，可反复启动程序而不破坏已有历史数据。
     // SQL 查询执行器
     QSqlQuery query(database);
 
@@ -224,6 +225,7 @@ QList<EngineeringValue> DatabaseManager::queryEngineeringValues(
     const QDateTime &endTime
 )
 {
+    // 历史曲线和采集历史表共用这个查询，按时间升序便于绘制趋势。
     QList<EngineeringValue> values;
 
     if (!database.isOpen()) {
@@ -270,6 +272,7 @@ QList<EngineeringValue> DatabaseManager::queryEngineeringValues(
 
 void DatabaseManager::confirmAlarm(const QString &alarmId, const QDateTime &confirmedTime)
 {
+    // 确认报警只更新状态和确认时间，不删除历史记录。
     if (!database.isOpen()) {
         emit errorOccurred("database is not open");
         return;
@@ -303,6 +306,7 @@ QList<AlarmRecord> DatabaseManager::queryAlarmRecords(
     int confirmedFilter
 )
 {
+    // confirmedFilter: -1 表示全部，0 表示未确认，1 表示已确认。
     QList<AlarmRecord> records;
 
     if (!database.isOpen()) {
@@ -379,6 +383,7 @@ void DatabaseManager::savePacketLog(
     const QString &content
 )
 {
+    // 报文日志只保存摘要文本，避免数据库里堆积过大的原始二进制报文。
     if (!database.isOpen()) {
         emit errorOccurred("database is not open");
         return;
@@ -408,6 +413,7 @@ QList<QStringList> DatabaseManager::queryPacketLogs(
     const QString &category
 )
 {
+    // 返回 QStringList 是为了直接喂给表格控件，减少 UI 层对数据库字段的依赖。
     QList<QStringList> logs;
 
     if (!database.isOpen()) {

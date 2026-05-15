@@ -17,6 +17,7 @@ MonitorPanel::MonitorPanel(QWidget *parent)
 
 void MonitorPanel::setupUi()
 {
+    // —— 顶部控制栏 ——
     timestampLabel = new QLabel("暂无数据", this);
 
     pauseButton = new QPushButton("暂停", this);
@@ -28,6 +29,7 @@ void MonitorPanel::setupUi()
     buttonLayout->addWidget(pauseButton);
     buttonLayout->addWidget(clearButton);
 
+    // —— 实时数据表格：4 行（温度/电压/电流/转速）× 5 列（名称/当前/最小/最大/平均） ——
     table = new QTableWidget(this);
     table->setColumnCount(5);
     table->setRowCount(4);
@@ -35,6 +37,7 @@ void MonitorPanel::setupUi()
     table->verticalHeader()->setVisible(false);
     table->horizontalHeader()->setStretchLastSection(true);
 
+    // 第 0 列预填指标名称，后续只更新数值列
     table->setItem(0, 0, new QTableWidgetItem("温度 ℃"));
     table->setItem(1, 0, new QTableWidgetItem("电压 V"));
     table->setItem(2, 0, new QTableWidgetItem("电流 A"));
@@ -53,6 +56,7 @@ void MonitorPanel::setupUi()
 
 void MonitorPanel::updateValue(const EngineeringValue &value)
 {
+    // 暂停只影响界面刷新，不影响后台轮询、报警判断和数据库保存。
     if (paused) {
         return;
     }
@@ -109,6 +113,7 @@ void MonitorPanel::resetStats()
 
 void MonitorPanel::updateStats(double temperature, double voltage, double current, double speed)
 {
+    // 统计值只基于当前面板收到的数据，清空后重新开始计算。
     ++sampleCount;
 
     currentTemperature = temperature;

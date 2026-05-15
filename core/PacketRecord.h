@@ -6,11 +6,13 @@
 #include <QMetaType>
 #include <QString>
 
+// 报文方向：Tx 表示上位机发出，Rx 表示设备响应。
 enum class PacketDirection {
     Tx,
     Rx
 };
 
+// 通信报文日志记录，用于联调时追踪请求、响应和错误摘要。
 struct PacketRecord
 {
     QDateTime timestamp = QDateTime::currentDateTime();;

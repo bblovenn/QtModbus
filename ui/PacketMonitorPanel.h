@@ -8,6 +8,7 @@
 class QPushButton;
 class QTextEdit;
 
+// 实时报文日志面板：显示运行期间的连接、读写、错误和报警摘要。
 class PacketMonitorPanel : public QWidget
 {
     Q_OBJECT

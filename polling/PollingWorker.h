@@ -6,10 +6,11 @@
 
 #include <QObject>
 
-//轮询读取Modbus寄存器
+// 轮询读取 Modbus 保持寄存器，并把原始寄存器值转换为工程量。
 
 class QTimer;
 
+// PollingWorker 不直接持有通信客户端，只通过 readRequested 信号请求读取，保持采集逻辑和通信实现解耦。
 class PollingWorker : public QObject
 {
     Q_OBJECT

@@ -9,6 +9,7 @@ AlarmManager::AlarmManager(QObject *parent)
 
 void AlarmManager::checkValue(const EngineeringValue &value)
 {
+    // 越限只在“正常 -> 报警”边沿触发一次；恢复正常后才允许下一次触发。
     if (value.temperature > temperatureHighLimit) {
         if (!temperatureHighActive) {
             temperatureHighActive = true;
@@ -53,6 +54,7 @@ void AlarmManager::onDeviceOffline()
 
 void AlarmManager::onDeviceOfflineForDevice(const QString &deviceId)
 {
+    // 离线报警同样做去重，避免连续通信失败时刷屏。
     if (deviceOfflineActive) {
         return;
     }
@@ -104,6 +106,7 @@ double AlarmManager::voltageLowLimitValue() const
 
 void AlarmManager::setAlarmLimits(double newTemperatureHighLimit, double newVoltageLowLimit)
 {
+    // 阈值变更后重置激活状态，让新阈值可以立即重新评估报警边沿。
     temperatureHighLimit = newTemperatureHighLimit;
     voltageLowLimit = newVoltageLowLimit;
 

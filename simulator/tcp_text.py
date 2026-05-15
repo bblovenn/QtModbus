@@ -1,6 +1,7 @@
 import random
 import time
 
+# 本脚本是本地 Modbus TCP 模拟器，用于没有真实下位机时验证上位机读写流程。
 from pymodbus.server import StartTcpServer
 from pymodbus.simulator import DataType
 from pymodbus.simulator import SimData
@@ -11,6 +12,7 @@ bit_tick = 0
 
 
 def update_sensor_values():
+    # 模拟传感器缓慢抖动，并限制在合理范围内，避免趋势曲线跳变过大。
     sensor_values[0] += random.randint(-2, 2)
     sensor_values[1] += random.randint(-5, 5)
     sensor_values[2] += random.randint(-10, 10)
@@ -65,6 +67,7 @@ async def update_data(
     current_registers,
     set_values,
 ):
+    # pymodbus simulator 会在请求到来时回调这里，用功能码决定更新哪一类数据区。
     del start_address, address, count, set_values
 
     # 03: Holding Registers, 04: Input Registers

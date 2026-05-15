@@ -12,6 +12,7 @@ class QLineEdit;
 class QPushButton;
 class QTableWidget;
 
+// 采集历史面板：查询工程量采集数据，并支持导出 CSV。
 class HistoryPanel : public QWidget
 {
     Q_OBJECT

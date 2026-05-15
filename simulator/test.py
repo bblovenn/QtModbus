@@ -1,5 +1,6 @@
 from pymodbus.client import ModbusTcpClient
 
+# smoke test 覆盖上位机支持的常用 Modbus 功能码，适合作为改代码后的快速回归。
 HOST = "127.0.0.1"
 PORT = 5020
 DEVICE_ID = 1
@@ -17,6 +18,7 @@ def require_ok(name, response):
 
 
 def main():
+    # 脚本连接已启动的本地模拟器；不自动启动服务，方便和 GUI 联调用同一个实例。
     client = ModbusTcpClient(HOST, port=PORT) #创建 Modbus TCP 客户端实例
 
     if not client.connect():

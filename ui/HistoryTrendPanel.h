@@ -9,6 +9,7 @@ class QLineEdit;
 class QPushButton;
 class TrendPanel;
 
+// 历史曲线面板：从数据库查询历史采集值，并复用趋势图进行展示。
 class HistoryTrendPanel : public QWidget
 {
     Q_OBJECT

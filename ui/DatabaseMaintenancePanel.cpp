@@ -63,6 +63,7 @@ void DatabaseMaintenancePanel::setupUi()
 //刷新数据库维护面板上的实时信息
 void DatabaseMaintenancePanel::refreshInfo()
 {
+    // 不缓存统计信息，每次刷新都读取数据库当前状态。
     if (!databaseManager) {
         return;
     }
@@ -75,6 +76,7 @@ void DatabaseMaintenancePanel::refreshInfo()
 
 void DatabaseMaintenancePanel::cleanupOldData()
 {
+    // 删除 cutoffTime 之前的所有记录（collect_data / alarm_log / packet_log），需用户确认
     if (!databaseManager) {
         return;
     }

@@ -8,6 +8,7 @@ class QLabel;
 class QDateTimeEdit;
 class QPushButton;
 
+// 数据库维护面板：展示数据库状态，并提供清理历史数据和压缩数据库入口。
 class DatabaseMaintenancePanel : public QWidget
 {
     Q_OBJECT

@@ -13,6 +13,7 @@ class QLineEdit;
 class QPushButton;
 class QTableWidget;
 
+// 报警历史面板：按条件查询报警记录，并支持导出 CSV。
 class AlarmHistoryPanel : public QWidget
 {
     Q_OBJECT

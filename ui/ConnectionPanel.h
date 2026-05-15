@@ -10,6 +10,7 @@ class QLineEdit;
 class QPushButton;
 class QSpinBox;
 
+// 设备连接面板：负责采集 TCP/RTU 连接参数，并发出连接/断开用户意图。
 class ConnectionPanel : public QWidget
 {
     Q_OBJECT
