@@ -100,7 +100,7 @@ def main():
         )
         assert verify_multi_coils.bits[:4] == [True, False, True, True]
 
-        print("\nAll Modbus smoke tests passed.")
+        print("\nAll tests passed.")
 
     finally:
         client.close()
