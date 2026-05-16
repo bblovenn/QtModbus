@@ -46,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupMainTabs();
 
     resize(1200, 800);
-    setWindowTitle(zh(u8"Qt Modbus RTU/TCP 工业设备监控与调试系统"));
+    setWindowTitle(zh(u8"Modbus RTU/TCP 工业设备监控与调试系统"));
     statusBar()->showMessage(zh(u8"未连接"));
 }
 

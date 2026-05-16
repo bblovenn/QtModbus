@@ -28,16 +28,16 @@ void DatabaseMaintenancePanel::setupUi()
     cutoffTimeEdit->setDisplayFormat("yyyy-MM-dd HH:mm:ss");
     cutoffTimeEdit->setCalendarPopup(true);
 
-    refreshButton = new QPushButton("Refresh", this);
-    cleanupButton = new QPushButton("Delete Before Time", this);
-    vacuumButton = new QPushButton("Vacuum", this);
+    refreshButton = new QPushButton("刷新", this);
+    cleanupButton = new QPushButton("删除此时间之前的数据", this);
+    vacuumButton = new QPushButton("压缩数据库", this);
 
     auto *formLayout = new QFormLayout;
-    formLayout->addRow("Database Path", pathLabel);
-    formLayout->addRow("Collect Rows", collectCountLabel);
-    formLayout->addRow("Alarm Rows", alarmCountLabel);
-    formLayout->addRow("Packet Rows", packetCountLabel);
-    formLayout->addRow("Cutoff Time", cutoffTimeEdit);
+    formLayout->addRow("数据库路径", pathLabel);
+    formLayout->addRow("采集数据行数", collectCountLabel);
+    formLayout->addRow("报警数据行数", alarmCountLabel);
+    formLayout->addRow("报文数据行数", packetCountLabel);
+    formLayout->addRow("截止时间", cutoffTimeEdit);
 
     auto *buttonLayout = new QHBoxLayout;
     buttonLayout->addWidget(refreshButton);
@@ -83,8 +83,8 @@ void DatabaseMaintenancePanel::cleanupOldData()
 
     const auto result = QMessageBox::question(
         this,
-        "Delete Old Data",
-        "Delete all records before selected time?"
+        "删除旧数据",
+        "删除选中时间之前的所有记录？"
     );
 
     if (result != QMessageBox::Yes) {
@@ -92,7 +92,7 @@ void DatabaseMaintenancePanel::cleanupOldData()
     }
 
     if (databaseManager->deleteDataBefore(cutoffTimeEdit->dateTime())) {
-        QMessageBox::information(this, "Delete Old Data", "Cleanup completed.");
+        QMessageBox::information(this, "删除旧数据", "清理完成。");
         refreshInfo();
     }
 }
@@ -104,7 +104,7 @@ void DatabaseMaintenancePanel::vacuumDatabase()
     }
 
     if (databaseManager->vacuum()) {
-        QMessageBox::information(this, "Vacuum", "Database vacuum completed.");
+        QMessageBox::information(this, "压缩数据库", "数据库压缩完成。");
         refreshInfo();
     }
 }

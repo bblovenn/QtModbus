@@ -30,13 +30,13 @@ void PollingConfigPanel::setupUi()
     countSpin->setRange(4, 125);
     countSpin->setValue(4);
 
-    applyButton = new QPushButton("Apply", this);
-    resetButton = new QPushButton("Reset", this);
+    applyButton = new QPushButton("应用", this);
+    resetButton = new QPushButton("重置", this);
 
     auto *formLayout = new QFormLayout;
-    formLayout->addRow("Interval", intervalSpin);
-    formLayout->addRow("Start Address", startAddressSpin);
-    formLayout->addRow("Register Count", countSpin);
+    formLayout->addRow("间隔", intervalSpin);
+    formLayout->addRow("起始地址", startAddressSpin);
+    formLayout->addRow("寄存器数量", countSpin);
 
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->addLayout(formLayout);

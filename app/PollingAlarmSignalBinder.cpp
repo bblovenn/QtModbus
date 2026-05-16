@@ -74,7 +74,7 @@ void PollingAlarmSignalBinder::bind(const MainWindowSignalBinderContext &context
             }
 
             window->statusBar()->showMessage(
-                QString("Polling config saved: interval=%1 ms, start=%2, count=%3")
+                QString("轮询配置已保存：间隔=%1 ms, 起始=%2, 数量=%3")
                     .arg(runtime->pollingIntervalMs)
                     .arg(runtime->pollingStartAddress)
                     .arg(runtime->pollingCount)

@@ -45,7 +45,7 @@ QString PacketMonitorPanel::formatPacket(const PacketRecord &record) const
 {
     const QString directionText =
         // 根据方向生成标签：发送=TX，接收=RX
-        record.direction == PacketDirection::Tx ? "TX" : "RX";
+        record.direction == PacketDirection::Tx ? "发送" : "接收";
 
     // 将字节数组转为十六进制字符串，每字节用空格分隔，转大写
     // 例如：QByteArray{0x01,0x03} → "01 03"

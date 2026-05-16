@@ -35,14 +35,14 @@ void PacketHistoryPanel::setupUi()
     endTimeEdit->setCalendarPopup(true);
 
     categoryCombo = new QComboBox(this);
-    categoryCombo->addItem("All", "All");
-    categoryCombo->addItem("Connection", "Connection");
+    categoryCombo->addItem("全部", "All");
+    categoryCombo->addItem("连接", "Connection");
     categoryCombo->addItem("Modbus", "Modbus");
-    categoryCombo->addItem("Communication", "Communication");
-    categoryCombo->addItem("Alarm", "Alarm");
+    categoryCombo->addItem("通信", "Communication");
+    categoryCombo->addItem("报警", "Alarm");
 
-    queryButton = new QPushButton("Query", this);
-    exportButton = new QPushButton("Export CSV", this);
+    queryButton = new QPushButton("查询", this);
+    exportButton = new QPushButton("导出 CSV", this);
 
     auto *filterLayout = new QHBoxLayout;
     filterLayout->addWidget(beginTimeEdit);
@@ -54,7 +54,7 @@ void PacketHistoryPanel::setupUi()
     table = new QTableWidget(this);
     table->setColumnCount(4);
     table->setHorizontalHeaderLabels({
-        "Time", "Category", "Direction", "Content"
+        "时间", "类别", "方向", "内容"
     });
     table->horizontalHeader()->setStretchLastSection(true);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -112,15 +112,15 @@ void PacketHistoryPanel::exportCsv()
 {
     // 报文日志导出的是当前查询结果，适合和现场操作记录一起归档。
     if (currentLogs.isEmpty()) {
-        QMessageBox::information(this, "Export CSV", "No packet logs to export.");
+        QMessageBox::information(this, "导出 CSV", "没有可导出的报文日志。");
         return;
     }
 
     const QString fileName = QFileDialog::getSaveFileName(
         this,
-        "Export Packet Logs",
+        "导出报文日志",
         "packet_log.csv",
-        "CSV Files (*.csv)"
+        "CSV 文件 (*.csv)"
     );
 
     if (fileName.isEmpty()) {
@@ -129,7 +129,7 @@ void PacketHistoryPanel::exportCsv()
 
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, "Export CSV", "Failed to open file.");
+        QMessageBox::warning(this, "导出 CSV", "打开文件失败。");
         return;
     }
 
@@ -137,10 +137,10 @@ void PacketHistoryPanel::exportCsv()
     out.setEncoding(QStringConverter::Utf8);
     out.setGenerateByteOrderMark(true);
 
-    out << csvEscape("Time") << ","
-        << csvEscape("Category") << ","
-        << csvEscape("Direction") << ","
-        << csvEscape("Content") << "\n";
+    out << csvEscape("时间") << ","
+        << csvEscape("类别") << ","
+        << csvEscape("方向") << ","
+        << csvEscape("内容") << "\n";
 
     for (const QStringList &rowData : currentLogs) {
         out << csvEscape(rowData.value(0)) << ","
@@ -151,5 +151,5 @@ void PacketHistoryPanel::exportCsv()
 
     file.close();
 
-    QMessageBox::information(this, "Export CSV", "Export completed.");
+    QMessageBox::information(this, "导出 CSV", "导出完成。");
 }

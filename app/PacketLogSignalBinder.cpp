@@ -25,7 +25,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Connection",
                 "TX",
-                QString("Connect request %1:%2 slave=%3")
+                QString("连接请求 %1:%2 从站=%3")
                     .arg(config.tcp.host)
                     .arg(config.tcp.port)
                     .arg(config.slaveId)
@@ -37,7 +37,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Connection",
                 "TX",
-                "Disconnect request"
+                "断开连接请求"
             );
     });
 
@@ -47,7 +47,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Modbus",
                 "TX",
-                QString("Read holding registers start=%1 count=%2")
+                QString("读取保持寄存器 起始=%1 数量=%2")
                     .arg(startAddress)
                     .arg(count)
             );
@@ -58,7 +58,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Modbus",
                 "TX",
-                QString("Read input registers start=%1 count=%2")
+                QString("读取输入寄存器 起始=%1 数量=%2")
                     .arg(startAddress)
                     .arg(count)
             );
@@ -69,7 +69,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Modbus",
                 "TX",
-                QString("Read coils start=%1 count=%2")
+                QString("读取线圈 起始=%1 数量=%2")
                     .arg(startAddress)
                     .arg(count)
             );
@@ -80,7 +80,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Modbus",
                 "TX",
-                QString("Read discrete inputs start=%1 count=%2")
+                QString("读取离散输入 起始=%1 数量=%2")
                     .arg(startAddress)
                     .arg(count)
             );
@@ -92,7 +92,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Modbus",
                 "TX",
-                QString("Write single holding register address=%1 value=%2")
+                QString("写单个保持寄存器 地址=%1 值=%2")
                     .arg(address)
                     .arg(value)
             );
@@ -103,9 +103,9 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Modbus",
                 "TX",
-                QString("Write single coil address=%1 value=%2")
+                QString("写单个线圈 地址=%1 值=%2")
                     .arg(address)
-                    .arg(value ? "ON" : "OFF")
+                    .arg(value ? "开" : "关")
             );
     });
 
@@ -114,7 +114,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Modbus",
                 "TX",
-                QString("Write multiple holding registers start=%1 count=%2")
+                QString("写多个保持寄存器 起始=%1 数量=%2")
                     .arg(startAddress)
                     .arg(values.size())
             );
@@ -125,7 +125,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Modbus",
                 "TX",
-                QString("Write multiple coils start=%1 count=%2")
+                QString("写多个线圈 起始=%1 数量=%2")
                     .arg(startAddress)
                     .arg(values.size())
             );
@@ -137,7 +137,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Communication",
                 "RX",
-                "Error " + message
+                "错误 " + message
             );
     });
 
@@ -147,7 +147,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Modbus",
                 "RX",
-                QString("%1 read ok start=%2 count=%3")
+                QString("%1 读取成功 起始=%2 数量=%3")
                     .arg(registerTypeText(result.type))
                     .arg(result.startAddress)
                     .arg(result.values.size())
@@ -159,7 +159,7 @@ void PacketLogSignalBinder::bind(const MainWindowSignalBinderContext &context)
             packetLog->append(
                 "Modbus",
                 "RX",
-                QString("%1 write ok address=%2 count=%3 value=%4")
+                QString("%1 写入成功 地址=%2 数量=%3 值=%4")
                     .arg(registerTypeText(result.type))
                     .arg(result.address)
                     .arg(result.count)

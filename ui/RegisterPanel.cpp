@@ -62,8 +62,8 @@ void RegisterPanel::setupUi()
     writeCoilAddressSpin->setValue(0);
 
     writeCoilValueCombo = new QComboBox(this);
-    writeCoilValueCombo->addItem("OFF", false);
-    writeCoilValueCombo->addItem("ON", true);
+    writeCoilValueCombo->addItem("关", false);
+    writeCoilValueCombo->addItem("开", true);
 
     writeCoilButton = new QPushButton("写单个线圈", this);
 

@@ -33,17 +33,17 @@ void HistoryTrendPanel::setupUi()
     endTimeEdit->setCalendarPopup(true);
 
     // —— 操作按钮 ——
-    queryButton = new QPushButton("Query", this);
-    clearButton = new QPushButton("Clear", this);
+    queryButton = new QPushButton("查询", this);
+    clearButton = new QPushButton("清空", this);
 
     // —— 复用实时曲线组件，但隐藏暂停/清空按钮，由本面板自行管理 ——
     trendPanel = new TrendPanel(this);
     trendPanel->setControlPanelVisible(false);
 
     auto *formLayout = new QFormLayout;
-    formLayout->addRow("Device ID", deviceIdEdit);
-    formLayout->addRow("Begin Time", beginTimeEdit);
-    formLayout->addRow("End Time", endTimeEdit);
+    formLayout->addRow("设备 ID", deviceIdEdit);
+    formLayout->addRow("开始时间", beginTimeEdit);
+    formLayout->addRow("结束时间", endTimeEdit);
 
     auto *buttonLayout = new QHBoxLayout;
     buttonLayout->addWidget(queryButton);

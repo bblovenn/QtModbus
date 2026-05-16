@@ -14,8 +14,8 @@ TrendPanel::TrendPanel(QWidget *parent)
 
 void TrendPanel::setupUi()
 {
-    pauseButton = new QPushButton("Pause", this);
-    clearButton = new QPushButton("Clear", this);
+    pauseButton = new QPushButton("暂停", this);
+    clearButton = new QPushButton("清空", this);
 
     auto *buttonLayout = new QHBoxLayout;
     buttonLayout->addWidget(pauseButton);
@@ -54,7 +54,7 @@ void TrendPanel::clearData()
 void TrendPanel::togglePaused()
 {
     paused = !paused;
-    pauseButton->setText(paused ? "Resume" : "Pause"); // 按钮文字跟随状态切换
+    pauseButton->setText(paused ? "继续" : "暂停"); // 按钮文字跟随状态切换
 }
 
 void TrendPanel::paintEvent(QPaintEvent *event)
@@ -71,7 +71,7 @@ void TrendPanel::paintEvent(QPaintEvent *event)
 
     if (values.size() < 2) {
         painter.setPen(QColor(100, 100, 100));
-        painter.drawText(area, Qt::AlignCenter, "Waiting for data...");
+        painter.drawText(area, Qt::AlignCenter, "等待数据...");
         return; // 不足 2 点无法成线
     }
 
@@ -88,16 +88,16 @@ void TrendPanel::paintEvent(QPaintEvent *event)
 
         switch (i) {
         case 0:
-            drawSeries(painter, rowRect, 0, QColor(220, 70, 70), "Temperature");
+            drawSeries(painter, rowRect, 0, QColor(220, 70, 70), "温度");
             break;
         case 1:
-            drawSeries(painter, rowRect, 1, QColor(70, 120, 220), "Voltage");
+            drawSeries(painter, rowRect, 1, QColor(70, 120, 220), "电压");
             break;
         case 2:
-            drawSeries(painter, rowRect, 2, QColor(60, 160, 100), "Current");
+            drawSeries(painter, rowRect, 2, QColor(60, 160, 100), "电流");
             break;
         case 3:
-            drawSeries(painter, rowRect, 3, QColor(180, 120, 40), "Speed");
+            drawSeries(painter, rowRect, 3, QColor(180, 120, 40), "转速");
             break;
         }
     }
@@ -121,7 +121,7 @@ void TrendPanel::drawSeries(QPainter &painter, const QRect &rect, int metricInde
     // 获取对应物理量单位
     QString unit;
     switch (metricIndex) {
-    case 0: unit = "C"; break;   // 摄氏度
+    case 0: unit = "℃"; break;   // 摄氏度
     case 1: unit = "V"; break;   // 伏特
     case 2: unit = "A"; break;   // 安培
     case 3: unit = "rpm"; break; // 转/分
@@ -179,7 +179,7 @@ void TrendPanel::drawSeries(QPainter &painter, const QRect &rect, int metricInde
     painter.drawText(
         rect.adjusted(10, 6, -10, -6),
         Qt::AlignRight | Qt::AlignTop,
-        QString("min %1 / max %2")
+        QString("最小 %1 / 最大 %2")
             .arg(minValue, 0, 'f', metricIndex == 3 ? 0 : 2)
             .arg(maxValue, 0, 'f', metricIndex == 3 ? 0 : 2)
     );

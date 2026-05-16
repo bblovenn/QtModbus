@@ -1,4 +1,4 @@
-// Qt Modbus RTU/TCP 工业设备监控与调试系统 — 应用入口
+// Modbus RTU/TCP 工业设备监控与调试系统 — 应用入口
 #include "mainwindow.h"
 
 #include <QApplication>

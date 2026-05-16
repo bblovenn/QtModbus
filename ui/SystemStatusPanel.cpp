@@ -35,7 +35,7 @@ void SystemStatusPanel::setupUi()
     grid->addWidget(speedLabel, 4, 1);
     grid->addWidget(alarmLabel, 5, 0, 1, 2);
 
-    auto *box = new QGroupBox("System Status", this);
+    auto *box = new QGroupBox("系统状态", this);
     box->setLayout(grid);
 
     auto *mainLayout = new QVBoxLayout(this);
@@ -44,13 +44,13 @@ void SystemStatusPanel::setupUi()
 
     setDisconnected();
     setPollingStopped();
-    setLabelText(databaseLabel, "Database", "Not ready");
-    setLabelText(lastUpdateLabel, "Last Update", "-");
-    setLabelText(temperatureLabel, "Temperature", "-");
-    setLabelText(voltageLabel, "Voltage", "-");
-    setLabelText(currentLabel, "Current", "-");
-    setLabelText(speedLabel, "Speed", "-");
-    setLabelText(alarmLabel, "Latest Alarm", "-");
+    setLabelText(databaseLabel, "数据库", "未就绪");
+    setLabelText(lastUpdateLabel, "最后更新", "-");
+    setLabelText(temperatureLabel, "温度", "-");
+    setLabelText(voltageLabel, "电压", "-");
+    setLabelText(currentLabel, "电流", "-");
+    setLabelText(speedLabel, "转速", "-");
+    setLabelText(alarmLabel, "最新报警", "-");
 }
 
 void SystemStatusPanel::setLabelText(QLabel *label, const QString &title, const QString &value)
@@ -60,61 +60,61 @@ void SystemStatusPanel::setLabelText(QLabel *label, const QString &title, const 
 
 void SystemStatusPanel::setConnecting()
 {
-    setLabelText(connectionLabel, "Connection", "Connecting");
+    setLabelText(connectionLabel, "连接", "连接中");
 }
 
 void SystemStatusPanel::setConnected()
 {
-    setLabelText(connectionLabel, "Connection", "Connected");
+    setLabelText(connectionLabel, "连接", "已连接");
 }
 
 void SystemStatusPanel::setDisconnected()
 {
-    setLabelText(connectionLabel, "Connection", "Disconnected");
+    setLabelText(connectionLabel, "连接", "已断开");
 }
 
 void SystemStatusPanel::setCommunicationError(const QString &message)
 {
-    setLabelText(connectionLabel, "Connection Error", message);
+    setLabelText(connectionLabel, "连接错误", message);
 }
 
 void SystemStatusPanel::setPollingStarted()
 {
-    setLabelText(pollingLabel, "Polling", "Running");
+    setLabelText(pollingLabel, "轮询", "运行中");
 }
 
 void SystemStatusPanel::setPollingStopped()
 {
-    setLabelText(pollingLabel, "Polling", "Stopped");
+    setLabelText(pollingLabel, "轮询", "已停止");
 }
 
 void SystemStatusPanel::setDatabaseReady(const QString &path)
 {
-    setLabelText(databaseLabel, "Database", path);
+    setLabelText(databaseLabel, "数据库", path);
 }
 
 // 收到新一轮轮询结果时，刷新状态总览中的实时数据和最后更新时间
 void SystemStatusPanel::updateEngineeringValue(const EngineeringValue &value)
 {
     // 状态总览只展示最新一帧工程量，完整历史由历史查询页负责。
-    setLabelText(lastUpdateLabel, "Last Update",
+    setLabelText(lastUpdateLabel, "最后更新",
                  value.timestamp.toString("yyyy-MM-dd HH:mm:ss"));
 
-    setLabelText(temperatureLabel, "Temperature",
-                 QString("%1 C").arg(value.temperature, 0, 'f', 1));
+    setLabelText(temperatureLabel, "温度",
+                 QString("%1 ℃").arg(value.temperature, 0, 'f', 1));
 
-    setLabelText(voltageLabel, "Voltage",
+    setLabelText(voltageLabel, "电压",
                  QString("%1 V").arg(value.voltage, 0, 'f', 2));
 
-    setLabelText(currentLabel, "Current",
+    setLabelText(currentLabel, "电流",
                  QString("%1 A").arg(value.current, 0, 'f', 2));
 
-    setLabelText(speedLabel, "Speed",
+    setLabelText(speedLabel, "转速",
                  QString("%1 rpm").arg(value.speed, 0, 'f', 0));
 }
 
 void SystemStatusPanel::updateAlarm(const AlarmRecord &alarm)
 {
     // 这里只保留最新报警摘要，报警列表和确认操作在报警面板中完成。
-    setLabelText(alarmLabel, "Latest Alarm", alarm.message);
+    setLabelText(alarmLabel, "最新报警", alarm.message);
 }

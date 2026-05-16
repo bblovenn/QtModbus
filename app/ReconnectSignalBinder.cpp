@@ -54,7 +54,7 @@ void ReconnectSignalBinder::bind(const MainWindowSignalBinderContext &context)
 
     QObject::connect(reconnectController, &ReconnectController::reconnectMessage,
         panels->packets, [packetLog](const QString &message) {
-            packetLog->append("Connection", "AUTO", message);
+            packetLog->append("Connection", "自动", message);
     });
 
     // —— 重连中状态 → 状态总览 ——

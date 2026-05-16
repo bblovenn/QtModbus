@@ -31,7 +31,7 @@ void ReconnectController::scheduleReconnect(const QString &deviceId)
 
     // 通知 UI 或日志模块：已进入自动重连流程
     emit reconnectMessage(
-        QString("Device %1 disconnected, auto reconnect started")
+        QString("设备 %1 已断开，自动重连已启动")
             .arg(deviceId)
     );
 }
@@ -64,7 +64,7 @@ void ReconnectController::doReconnect()
     ++attempt; // 递增重试计数（第 1 次调用时为 1）
 
     emit reconnectMessage(
-        QString("Auto reconnect attempt %1: %2:%3")
+        QString("自动重连第 %1 次尝试：%2:%3")
             .arg(attempt)
             .arg(lastConfig.tcp.host)
             .arg(lastConfig.tcp.port)
