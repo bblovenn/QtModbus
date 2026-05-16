@@ -44,7 +44,6 @@ void AlarmManager::checkValue(const EngineeringValue &value)
         voltageLowActive = false;
     }
 
-    deviceOfflineActive = false;
 }
 
 void AlarmManager::onDeviceOffline()

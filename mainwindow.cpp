@@ -118,14 +118,17 @@ void MainWindow::loadInitialSettings()
         runtimeState.pollingCount
     );
 
+    //加载配置
     const AlarmLimits alarmLimits = appSettings.loadAlarmLimits(
         alarmManager->temperatureHighLimitValue(),
         alarmManager->voltageLowLimitValue()
     );
+    // 将加载的报警阈值应用到报警管理器
     alarmManager->setAlarmLimits(
         alarmLimits.temperatureHighLimit,
         alarmLimits.voltageLowLimit
     );
+    // 将加载的报警阈值设置到报警配置面板，供用户查看和修改
     panels.alarmConfig->setInitialLimits(
         alarmLimits.temperatureHighLimit,
         alarmLimits.voltageLowLimit
@@ -183,7 +186,9 @@ void MainWindow::initializeDatabase()
         databaseManager, &DatabaseManager::confirmAlarm
     );
 
+    // 数据库准备就绪后刷新相关面板显示。
     panels.databaseMaintenance->refreshInfo();
+    // 设置系统状态面板的数据库就绪标志和路径显示
     panels.systemStatus->setDatabaseReady(databaseManager->databaseFilePath());
 }
 
@@ -194,10 +199,10 @@ void MainWindow::connectSignals()
         this,
         &appSettings,
         &panels,
-        &runtimeState,
-        packetLogService.get(),
+        &runtimeState, // 轮询配置和连接状态等运行时信息
+        packetLogService.get(), // 报文日志服务
         modbusClient,
-        pollingWorker,
+        pollingWorker, // 轮询工作对象
         alarmManager,
         databaseManager,
         reconnectController

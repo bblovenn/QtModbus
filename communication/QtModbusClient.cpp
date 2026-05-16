@@ -48,7 +48,7 @@ void QtModbusClient::createClient(const DeviceConfig &config)
     connect(client_, &QModbusClient::stateChanged, this, [this](int state) {
         if (state == QModbusDevice::ConnectedState) {
             wasConnected_ = true;
-            manualDisconnect_ = false;
+            manualDisconnect_ = false; // 用户主动断开标志
             emit connected();
         } else if (state == QModbusDevice::UnconnectedState) {
             // 只有非用户主动断开才视为异常断开，避免手动断开触发自动重连。

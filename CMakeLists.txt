@@ -1,13 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 
-if(APPLE AND NOT DEFINED CMAKE_OSX_ARCHITECTURES)
-  set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architecture for Apple Silicon")
-endif()
-
-if(APPLE AND EXISTS "/Users/bbnn/Qt/6.10.3/macos/lib/cmake/Qt6/Qt6Config.cmake")
-  list(PREPEND CMAKE_PREFIX_PATH "/Users/bbnn/Qt/6.10.3/macos")
-endif()
-
 project(ModbusIndustrialHmi VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -61,9 +53,7 @@ set(MODBUS_SOURCES
   app/SystemStatusSignalBinder.h
   app/SystemStatusSignalBinder.cpp
   core/DeviceConfig.h
-  core/DeviceConfig.cpp
   core/RegisterValue.h
-  core/RegisterValue.cpp
   core/EngineeringValue.h
   core/AlarmRecord.h
   core/PacketRecord.h

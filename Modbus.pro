@@ -21,8 +21,6 @@ SOURCES += \
     alarm/AlarmManager.cpp \
     communication/QtModbusClient.cpp \
     communication/ReconnectController.cpp \
-    core/DeviceConfig.cpp \
-    core/RegisterValue.cpp \
     database/DatabaseManager.cpp \
     polling/PollingWorker.cpp \
     ui/AlarmConfigPanel.cpp \
